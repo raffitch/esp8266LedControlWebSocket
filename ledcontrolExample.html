@@ -1,0 +1,92 @@
+<!--
+  @file        LED_Controller.html
+  @author      [Raffi Tchakerian]
+  @date        [2023-08-30]
+  @version     [1.0]
+  
+  @brief       This HTML file provides a user interface for controlling LED clusters.
+               Through this interface, users can set the Red, Green, Blue color levels 
+               and the intensity of each LED cluster. The settings are sent to an 
+               ESP8266 via WebSocket.
+  
+-->
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LED Controller</title>  <!-- Page title -->
+</head>
+<body>
+
+  <h1>LED Controller</h1>  <!-- Main heading -->
+
+  <!-- Cluster 1 -->
+  <h2>Cluster 1</h2>  <!-- Sub-heading for Cluster 1 -->
+  <!-- Input sliders for setting the Red, Green, and Blue color levels and intensity for Cluster 1 -->
+  <label for="red1">Red:</label>
+  <input type="range" id="red1" name="red1" min="0" max="255"><br>
+  
+  <label for="green1">Green:</label>
+  <input type="range" id="green1" name="green1" min="0" max="255"><br>
+  
+  <label for="blue1">Blue:</label>
+  <input type="range" id="blue1" name="blue1" min="0" max="255"><br>
+  
+  <label for="intensity1">Intensity:</label>
+  <input type="range" id="intensity1" name="intensity1" min="0" max="100"><br>
+
+  <!-- (Cluster 2 and Cluster 3 sections are similar to Cluster 1) -->
+
+  <!-- Display connection status -->
+  <div id="status">Status: Not connected</div>
+
+  <!-- JavaScript code begins here -->
+  <script>
+    // Create a WebSocket connection
+    const webSocket = new WebSocket('ws://192.168.0.177:81'); // Make sure you put the IP address of the ESP8266 you're trying to control
+    const statusDiv = document.getElementById('status');  // Element to display connection status
+
+    // Event listener for WebSocket open event
+    webSocket.addEventListener('open', function (event) {
+      statusDiv.textContent = "Status: Connected";  // Update status to Connected when WebSocket is open
+    });
+
+    // Event listener for WebSocket close event
+    webSocket.addEventListener('close', function (event) {
+      statusDiv.textContent = "Status: Disconnected";  // Update status to Disconnected when WebSocket is closed
+    });
+
+    // Add event listeners for all color and intensity sliders for each cluster
+    for (let i = 1; i <= 3; i++) {
+      ['red', 'green', 'blue', 'intensity'].forEach(color => {
+        const id = `${color}${i}`;
+        document.getElementById(id).addEventListener('input', function() {
+          sendData(i);  // Call sendData function when a slider value changes
+        });
+      });
+    }
+
+    // Function to send the LED color and intensity data to the WebSocket
+    function sendData(cluster) {
+      const red = document.getElementById('red' + cluster).value;
+      const green = document.getElementById('green' + cluster).value;
+      const blue = document.getElementById('blue' + cluster).value;
+      const intensity = document.getElementById('intensity' + cluster).value;
+
+      // Create a JSON object to hold the LED data
+      const payload = JSON.stringify({
+        cluster: cluster,
+        ledR: parseInt(red, 10),
+        ledG: parseInt(green, 10),
+        ledB: parseInt(blue, 10),
+        intensity: parseInt(intensity, 10)
+      });
+
+      // Send the JSON payload through the WebSocket
+      webSocket.send(payload);
+    }
+  </script>
+
+</body>
+</html>
