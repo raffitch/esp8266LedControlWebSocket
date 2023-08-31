@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LED Control</title>
+  
+  <script type="text/javascript">
+    const webSocket = new WebSocket('ws://10.5.2.160:81');
+
+    function generateForms() {
+      const numClusters = document.getElementById("numClusters").value;
+      let formContainer = document.getElementById("formContainer");
+      formContainer.innerHTML = ""; // Clear existing forms
+
+      for (let i = 1; i <= numClusters; i++) {
+        let clusterForm = `
+          <h3>Cluster ${i}</h3>
+          <label for="start${i}">Start:</label>
+          <input type="number" id="start${i}" min="0" max="100" value="0" onchange="sendData(${i})">
+          <label for="end${i}">End:</label>
+          <input type="number" id="end${i}" min="0" max="255" value="255" onchange="sendData(${i})">
+          <label for="intensity${i}">Intensity:</label>
+          <input type="range" id="intensity${i}" min="0" max="255" value="128" oninput="sendData(${i})">
+          <label for="ledR${i}">R:</label>
+          <input type="range" id="ledR${i}" min="0" max="255" value="0" oninput="sendData(${i})">
+          <label for="ledG${i}">G:</label>
+          <input type="range" id="ledG${i}" min="0" max="255" value="0" oninput="sendData(${i})">
+          <label for="ledB${i}">B:</label>
+          <input type="range" id="ledB${i}" min="0" max="255" value="0" oninput="sendData(${i})">
+        `;
+        formContainer.innerHTML += clusterForm;
+      }
+    }
+
+    function sendData(cluster) {
+      const start = document.getElementById(`start${cluster}`).value;
+      const end = document.getElementById(`end${cluster}`).value;
+      const intensity = document.getElementById(`intensity${cluster}`).value;
+      const ledR = document.getElementById(`ledR${cluster}`).value;
+      const ledG = document.getElementById(`ledG${cluster}`).value;
+      const ledB = document.getElementById(`ledB${cluster}`).value;
+
+      const clusterData = {
+        cluster: cluster,
+        start: parseInt(start),
+        end: parseInt(end),
+        intensity: parseInt(intensity),
+        ledR: parseInt(ledR),
+        ledG: parseInt(ledG),
+        ledB: parseInt(ledB)
+      };
+
+      // Send `clusterData` to server via WebSocket
+      webSocket.send(JSON.stringify(clusterData));
+    }
+  </script>
+</head>
+<body>
+  <h1>LED Cluster Control</h1>
+  <h5>Clusters start from 0 to (strip length), make sure they don't overlap e.g. c1 = 0 - 5, c2 = 6 - 10, c3 = 11 - 15 (for a strip with 16 leds). </br>
+    The cluster management is now flexible and done from client side. You only need to setup LED strip length in ESP8266 code and wifi details and ip address</h5>
+  <label for="numClusters">Number of Clusters:</label>
+  <select id="numClusters" onchange="generateForms()">
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <!-- Add more options as needed -->
+  </select>
+  <div id="formContainer">
+    <!-- Cluster forms will be inserted here -->
+  </div>
+</body>
+</html>

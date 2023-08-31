@@ -20,14 +20,14 @@
 
 // Constants to define LED properties
 #define LED_PIN     D5        // Pin where the LED data line is connected
-#define NUM_LEDS    73        // Number of LEDs in the strip
+#define NUM_LEDS    16        // Number of LEDs in the strip
 CRGB leds[NUM_LEDS];          // Array to store the state of each LED
 
 // WiFi Credentials - !!IMPORTANT WILL ONLY WORK WITH 2.4GHZ WIFI SIGNALS NOT 5GHZ
 const char* ssid = "DIDI";               // WiFi network name
 const char* password = "";        // WiFi network password
 // Network Configuration
-IPAddress staticIP(10, 5, 2, 150); // Static IP for the ESP8266
+IPAddress staticIP(10, 5, 2, 160); // Static IP for the ESP8266
 IPAddress gateway(10, 5, 0, 1);    // Network Gateway (usually your router IP)
 IPAddress subnet(255, 255, 252, 0);   // Network Subnet Mask
 
