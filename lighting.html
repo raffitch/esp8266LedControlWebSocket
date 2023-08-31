@@ -186,7 +186,7 @@ if (hasChanged) {
     let remappedOpacities = previousOpacities.map(opacity => Math.floor(opacity * 100));
     console.log(JSON.stringify(remappedOpacities));
 
-    webSocket.send(JSON.stringify(jsonOutput));
+    webSocket.send(JSON.stringify(remappedOpacities));
     
     lastLoggedOpacities = [...previousOpacities];
 }
