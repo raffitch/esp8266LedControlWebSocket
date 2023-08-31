@@ -4,7 +4,7 @@
 #define FASTLED_ALLOW_INTERRUPTS 0
 #include <FastLED.h>
 #define LED_PIN     D5
-#define NUM_LEDS    16
+#define NUM_LEDS    73
 
 CRGB leds[NUM_LEDS];
 CRGB targetLeds[NUM_LEDS];

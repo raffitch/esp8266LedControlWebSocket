@@ -1,8 +1,8 @@
 /**
  * @file        LED_Controller_Arduino.ino
  * @author      [Raffi Tchakerian]
- * @date        [2023-08-30]
- * @version     [1.0]
+ * @date        [2023-08-31]
+ * @version     [2.0]
  * 
  * @brief       This program is an Arduino sketch designed to run on an ESP8266.
  *              It creates a WebSocket server to receive JSON data for controlling LEDs.
@@ -20,7 +20,7 @@
 
 // Constants to define LED properties
 #define LED_PIN     D5        // Pin where the LED data line is connected
-#define NUM_LEDS    16        // Number of LEDs in the strip
+#define NUM_LEDS    73        // Number of LEDs in the strip
 CRGB leds[NUM_LEDS];          // Array to store the state of each LED
 
 // WiFi Credentials - !!IMPORTANT WILL ONLY WORK WITH 2.4GHZ WIFI SIGNALS NOT 5GHZ
@@ -103,6 +103,11 @@ void setup() {
   }
   
   Serial.println("Connected to WiFi");
+  Serial.print("Connected to SSID: ");
+  Serial.println(WiFi.SSID());  // Print the SSID to which we are connected
+  Serial.print("Server IP address: ");
+  Serial.println(WiFi.localIP());  // Print the local IP address
+
   
   // Start WebSocket server and register event handler function
   webSocket.begin();

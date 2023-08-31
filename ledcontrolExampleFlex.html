@@ -6,6 +6,14 @@
   <script type="text/javascript">
     const webSocket = new WebSocket('ws://10.5.2.160:81');
 
+    // Update the connectionInfo div when the WebSocket connection opens or closes
+    webSocket.addEventListener('open', function() {
+    document.getElementById('connectionInfo').innerHTML = 'Connected to ws://10.5.2.160:81';
+    });
+    webSocket.addEventListener('close', function() {
+      document.getElementById('connectionInfo').innerHTML = 'Disconnected';
+    });
+
     function generateForms() {
       const numClusters = document.getElementById("numClusters").value;
       let formContainer = document.getElementById("formContainer");
@@ -58,6 +66,7 @@
   <h1>LED Cluster Control</h1>
   <h5>Clusters start from 0 to (strip length), make sure they don't overlap e.g. c1 = 0 - 5, c2 = 6 - 10, c3 = 11 - 15 (for a strip with 16 leds). </br>
     The cluster management is now flexible and done from client side. You only need to setup LED strip length in ESP8266 code and wifi details and ip address</h5>
+  <div id="connectionInfo">Connecting...</div>
   <label for="numClusters">Number of Clusters:</label>
   <select id="numClusters" onchange="generateForms()">
     <option value="1">1</option>
