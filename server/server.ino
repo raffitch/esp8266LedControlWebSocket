@@ -20,16 +20,16 @@
 
 // Constants to define LED properties
 #define LED_PIN     D5        // Pin where the LED data line is connected
-#define NUM_LEDS    30        // Number of LEDs in the strip
+#define NUM_LEDS    73        // Number of LEDs in the strip
 CRGB leds[NUM_LEDS];          // Array to store the state of each LED
 
 // WiFi Credentials - !!IMPORTANT WILL ONLY WORK WITH 2.4GHZ WIFI SIGNALS NOT 5GHZ
-const char* ssid = "your-wifi";               // WiFi network name
-const char* password = "your-wifi-password";        // WiFi network password
+const char* ssid = "DIDI";               // WiFi network name
+const char* password = "";        // WiFi network password
 // Network Configuration
-IPAddress staticIP(192, 168, 0, 177); // Static IP for the ESP8266
-IPAddress gateway(192, 168, 0, 1);    // Network Gateway (usually your router IP)
-IPAddress subnet(255, 255, 255, 0);   // Network Subnet Mask
+IPAddress staticIP(10, 5, 2, 150); // Static IP for the ESP8266
+IPAddress gateway(10, 5, 0, 1);    // Network Gateway (usually your router IP)
+IPAddress subnet(255, 255, 252, 0);   // Network Subnet Mask
 
 // WebSocket server on port 81
 WebSocketsServer webSocket = WebSocketsServer(81);
@@ -70,9 +70,9 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
         int end = 0;
 
         // Define which LEDs are in each cluster
-        if (cluster == 1) { start = 0; end = 9; }
-        if (cluster == 2) { start = 10; end = 19; }
-        if (cluster == 3) { start = 20; end = 29; }
+        if (cluster == 1) { start = 0; end = 25; }
+        if (cluster == 2) { start = 26; end = 50; }
+        if (cluster == 3) { start = 51; end = 73; }
 
         // Update LEDs based on incoming JSON data
         for (int i = start; i <= end; i++) {

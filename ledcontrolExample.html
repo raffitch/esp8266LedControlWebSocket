@@ -1,29 +1,14 @@
-<!--
-  @file        LED_Controller.html
-  @author      [Raffi Tchakerian]
-  @date        [2023-08-30]
-  @version     [1.0]
-  
-  @brief       This HTML file provides a user interface for controlling LED clusters.
-               Through this interface, users can set the Red, Green, Blue color levels 
-               and the intensity of each LED cluster. The settings are sent to an 
-               ESP8266 via WebSocket.
-  
--->
-
-
 <!DOCTYPE html>
 <html>
 <head>
-  <title>LED Controller</title>  <!-- Page title -->
+  <title>LED Controller</title>
 </head>
 <body>
 
-  <h1>LED Controller</h1>  <!-- Main heading -->
+  <h1>LED Controller</h1>
 
   <!-- Cluster 1 -->
-  <h2>Cluster 1</h2>  <!-- Sub-heading for Cluster 1 -->
-  <!-- Input sliders for setting the Red, Green, and Blue color levels and intensity for Cluster 1 -->
+  <h2>Cluster 1</h2>
   <label for="red1">Red:</label>
   <input type="range" id="red1" name="red1" min="0" max="255"><br>
   
@@ -35,46 +20,65 @@
   
   <label for="intensity1">Intensity:</label>
   <input type="range" id="intensity1" name="intensity1" min="0" max="100"><br>
+  
+  <!-- Cluster 2 -->
+  <h2>Cluster 2</h2>
+  <label for="red2">Red:</label>
+  <input type="range" id="red2" name="red2" min="0" max="255"><br>
+  
+  <label for="green2">Green:</label>
+  <input type="range" id="green2" name="green2" min="0" max="255"><br>
+  
+  <label for="blue2">Blue:</label>
+  <input type="range" id="blue2" name="blue2" min="0" max="255"><br>
+  
+  <label for="intensity2">Intensity:</label>
+  <input type="range" id="intensity2" name="intensity2" min="0" max="100"><br>
 
-  <!-- (Cluster 2 and Cluster 3 sections are similar to Cluster 1) -->
+  <!-- Cluster 3 -->
+  <h2>Cluster 3</h2>
+  <label for="red3">Red:</label>
+  <input type="range" id="red3" name="red3" min="0" max="255"><br>
+  
+  <label for="green3">Green:</label>
+  <input type="range" id="green3" name="green3" min="0" max="255"><br>
+  
+  <label for="blue3">Blue:</label>
+  <input type="range" id="blue3" name="blue3" min="0" max="255"><br>
+  
+  <label for="intensity3">Intensity:</label>
+  <input type="range" id="intensity3" name="intensity3" min="0" max="100"><br>
 
-  <!-- Display connection status -->
   <div id="status">Status: Not connected</div>
 
-  <!-- JavaScript code begins here -->
   <script>
-    // Create a WebSocket connection
-    const webSocket = new WebSocket('ws://192.168.0.177:81'); // Make sure you put the IP address of the ESP8266 you're trying to control
-    const statusDiv = document.getElementById('status');  // Element to display connection status
+    const webSocket = new WebSocket('ws://10.5.2.150:81');
+    const statusDiv = document.getElementById('status');
 
-    // Event listener for WebSocket open event
     webSocket.addEventListener('open', function (event) {
-      statusDiv.textContent = "Status: Connected";  // Update status to Connected when WebSocket is open
+      statusDiv.textContent = "Status: Connected";
     });
 
-    // Event listener for WebSocket close event
     webSocket.addEventListener('close', function (event) {
-      statusDiv.textContent = "Status: Disconnected";  // Update status to Disconnected when WebSocket is closed
+      statusDiv.textContent = "Status: Disconnected";
     });
 
-    // Add event listeners for all color and intensity sliders for each cluster
+    // Add event listeners
     for (let i = 1; i <= 3; i++) {
       ['red', 'green', 'blue', 'intensity'].forEach(color => {
         const id = `${color}${i}`;
         document.getElementById(id).addEventListener('input', function() {
-          sendData(i);  // Call sendData function when a slider value changes
+          sendData(i);
         });
       });
     }
 
-    // Function to send the LED color and intensity data to the WebSocket
     function sendData(cluster) {
       const red = document.getElementById('red' + cluster).value;
       const green = document.getElementById('green' + cluster).value;
       const blue = document.getElementById('blue' + cluster).value;
       const intensity = document.getElementById('intensity' + cluster).value;
 
-      // Create a JSON object to hold the LED data
       const payload = JSON.stringify({
         cluster: cluster,
         ledR: parseInt(red, 10),
@@ -83,7 +87,6 @@
         intensity: parseInt(intensity, 10)
       });
 
-      // Send the JSON payload through the WebSocket
       webSocket.send(payload);
     }
   </script>
