@@ -1,1 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Movement Detection</title>
+    <style>
+        #output {
+            font-family: Arial, sans-serif;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body style="background-color:black;color:white;transform:scale(-1,1)">
+
+    <div id="connectionInfo">Connecting...</div>
+    <video id="webcam" width="640" height="480" autoplay muted></video>
+    <canvas id="canvas" width="640" height="480" style="border:1px solid;"></canvas>
+    <div id="output"></div>
+
+<video id="webcam" width="640" height="480" autoplay muted></video>
+<canvas id="canvas" width="640" height="480" style="border:1px solid;"></canvas>
+<div id="output"></div>
+
+<!-- Sliders for adjustments -->
+<div style="transform:scale(-1,1)">
+    Pie Radius: <input type="range" min="10" max="240" value="200" id="pieSize"><br>
+    Circle Diameter: <input type="range" min="100" max="620" value="400" id="circleDiameter"><br>
+    Number of Regions: <input type="range" min="3" max="48" value="30" id="numRegions"><br>
+    Movement Threshold: <input type="range" min="0" max="100" value="50" id="movementThreshold"><br>
+</div>
+
+<script>
+
+
+const webSocket = new WebSocket('ws://10.5.2.160:81');
+
+// Update the connectionInfo div when the WebSocket connection opens or closes
+webSocket.addEventListener('open', function() {
+document.getElementById('connectionInfo').innerHTML = 'Connected to ws://10.5.2.160:81';
+});
+webSocket.addEventListener('close', function() {
+document.getElementById('connectionInfo').innerHTML = 'Disconnected';
+});
+
+
+    let video = document.getElementById('webcam');
+    let canvas = document.getElementById('canvas');
+    let context = canvas.getContext('2d');
+    let output = document.getElementById('output');
+
+    let previousImageData = null;
+
+    let pieSizeInput = document.getElementById('pieSize');
+    let circleDiameterInput = document.getElementById('circleDiameter');
+    let numRegionsInput = document.getElementById('numRegions');
+    let movementThresholdInput = document.getElementById('movementThreshold');
+
+
+    let regions = [];
+    let lastLoggedOpacities = [];
+
+    function computeRegions() {
+        regions = [];
+        let numRegions = parseInt(numRegionsInput.value);
+        let pieSize = parseInt(pieSizeInput.value);
+        let circleDiameter = parseInt(circleDiameterInput.value);
+        let centerX = canvas.width / 2;
+        let centerY = canvas.height / 2;
+        
+        for(let i = 0; i < numRegions; i++) {
+            let startAngle = (i / numRegions) * (2 * Math.PI);
+            let endAngle = ((i + 1) / numRegions) * (2 * Math.PI);
+            regions.push({centerX, centerY, startAngle, endAngle, radius: pieSize});
+        }
+    }
+
+    pieSizeInput.addEventListener('input', computeRegions);
+    circleDiameterInput.addEventListener('input', computeRegions);
+    numRegionsInput.addEventListener('input', computeRegions);
+
+    async function startWebcam() {
+        let stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+    }
+
+    function adjustBrightnessContrast(imgData, brightness = 1, contrast = 1) {
+        let data = imgData.data;
+        let factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+        
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = factor * (data[i] - 128) + 128 + brightness;     // Red channel
+            data[i + 1] = factor * (data[i + 1] - 128) + 128 + brightness; // Green channel
+            data[i + 2] = factor * (data[i + 2] - 128) + 128 + brightness; // Blue channel
+        }
+        return imgData;
+    }
+
+    function isGreenDominant(r, g, b) {
+        return g > r && g > b;
+    }
+
+    let previousOpacities = [];
+
+
+    function checkMovement() {
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    context.putImageData(adjustBrightnessContrast(imageData, 20, 30), 0, 0);
+
+    context.lineWidth = 0;
+    for (let region of regions) {
+        context.beginPath();
+        context.moveTo(region.centerX, region.centerY);
+        context.arc(region.centerX, region.centerY, region.radius, region.startAngle, region.endAngle);
+        context.closePath();
+        context.stroke();
+    }
+
+    let currentImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+    if (previousImageData) {
+        let movementValues = regions.map(region => 
+            computeMovement(previousImageData, currentImageData, region)
+        );
+
+        let remappedValues = movementValues.map(val => 
+            Math.min(Math.round(val * 1023), 1023)
+        );
+
+        // Add a black overlay on the video
+        context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        let movementThreshold = parseFloat(movementThresholdInput.value) / 100;
+
+        remappedValues.forEach((val, index) => {
+        let region = regions[index];
+        let midAngle = (region.startAngle + region.endAngle) / 2;
+        
+        let targetOpacity;
+        if ((val / 1023) > movementThreshold) {
+            targetOpacity = 1;
+            previousOpacities[index] = 1;
+        } else {
+            targetOpacity = 0.1;
+        }
+        
+        let previousOpacity = previousOpacities[index] || 0.1;
+        
+        // Gradually decrease opacity for smoother transitions
+        let opacity = previousOpacity + 0.05 * (targetOpacity - previousOpacity);
+        
+        // Add a trail effect by slightly activating neighboring dots
+        if (index > 0) {
+            previousOpacities[index - 1] = Math.max(previousOpacities[index - 1], opacity * 0.5);
+        }
+        if (index < regions.length - 1) {
+            previousOpacities[index + 1] = Math.max(previousOpacities[index + 1], opacity * 0.5);
+        }
+
+        let distanceFromCenter = region.radius / 2;
+        let dotX = region.centerX + distanceFromCenter * Math.cos(midAngle);
+        let dotY = region.centerY + distanceFromCenter * Math.sin(midAngle);
+        
+        context.beginPath();
+        context.arc(dotX, dotY, 3, 0, 2 * Math.PI);
+        context.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+        context.fill();
+
+        // Save the current opacity for the next frame
+        previousOpacities[index] = opacity;
+        // ... the rest of the code for computing opacities ...
+
+       // Check if there's any change in opacities
+let hasChanged = false;
+for (let i = 0; i < previousOpacities.length; i++) {
+    if (previousOpacities[i] !== lastLoggedOpacities[i]) {
+        hasChanged = true;
+        break;
+    }
+}
+
+// If there's a change, remap opacities to [10, 100], log them, and update the last logged opacities
+if (hasChanged) {
+    let remappedOpacities = previousOpacities.map(opacity => Math.floor(opacity * 100));
+    console.log(JSON.stringify(remappedOpacities));
+
+    webSocket.send(JSON.stringify(jsonOutput));
+    
+    lastLoggedOpacities = [...previousOpacities];
+}
+
+
+    });
+
+        // previousOpacities = remappedValues.map(val => val / 1023);
+
+    }
+
+    previousImageData = currentImageData;
+
+    setTimeout(checkMovement, 100);
+}
+
+    function computeMovement(imageData1, imageData2, region) {
+        let totalChange = 0;
+        for (let r = 0; r < region.radius; r++) {
+            for (let theta = region.startAngle; theta < region.endAngle; theta += 0.01) {
+                let x = region.centerX + r * Math.cos(theta);
+                let y = region.centerY + r * Math.sin(theta);
+                let i = (Math.floor(y) * imageData1.width + Math.floor(x)) * 4;
+
+                let r1 = imageData1.data[i];
+                let g1 = imageData1.data[i + 1];
+                let b1 = imageData1.data[i + 2];
+
+                let r2 = imageData2.data[i];
+                let g2 = imageData2.data[i + 1];
+                let b2 = imageData2.data[i + 2];
+
+                if (isGreenDominant(r1, g1, b1) || isGreenDominant(r2, g2, b2)) {
+                    let colorChange = Math.abs(g1 - g2);
+                    totalChange += colorChange;
+                }
+            }
+        }
+        return totalChange / (Math.PI * region.radius * (region.endAngle - region.startAngle) * 255);
+    }
+
+    video.onloadedmetadata = function() {
+        computeRegions();
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        requestAnimationFrame(checkMovement);
+    };
+
+    startWebcam();
+</script>
+
+</body>
+</html>
 
