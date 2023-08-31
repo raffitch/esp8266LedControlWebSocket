@@ -10,7 +10,6 @@ CRGB leds[NUM_LEDS];
 CRGB targetLeds[NUM_LEDS];
 uint8_t targetIntensity[NUM_LEDS];
 
-
 const char* ssid = "DIDI";
 const char* password = "";
 IPAddress staticIP(10, 5, 2, 160);
@@ -18,7 +17,7 @@ IPAddress gateway(10, 5, 0, 1);
 IPAddress subnet(255, 255, 252, 0);
 
 WebSocketsServer webSocket = WebSocketsServer(81);
-DynamicJsonDocument jsonDoc(1024);
+DynamicJsonDocument jsonDoc(2 * 1024); // Increased size to accommodate array data
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
   switch (type) {
@@ -39,28 +38,19 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
           return;
         }
 
-        int cluster = jsonDoc["cluster"];
-        int start = jsonDoc["start"];
-        int end = jsonDoc["end"];
-        int intensity = jsonDoc["intensity"];
-        uint8_t ledR = jsonDoc["ledR"];
-        uint8_t ledG = jsonDoc["ledG"];
-        uint8_t ledB = jsonDoc["ledB"];
+        JsonArray ledIntensities = jsonDoc["ledIntensities"];
         
-        Serial.printf("Received data for cluster %d: Start %d, End %d, Intensity %d, Color R %d G %d B %d\n", cluster, start, end, intensity, ledR, ledG, ledB);
-
-        if (start >= 0 && end < NUM_LEDS && start <= end) {  // bounds check
-          for (int i = start; i <= end; i++) {
-            targetLeds[i] = CRGB(ledR, ledG, ledB);
-            targetIntensity[i] = intensity;
+        if (ledIntensities.size() <= NUM_LEDS) {
+          for (int i = 0; i < ledIntensities.size(); i++) {
+            targetIntensity[i] = ledIntensities[i];
           }
         }
+        
+        Serial.println("Received LED intensities array");
       }
       break;
   }
 }
-
-
 
 void setup() {
   Serial.begin(115200);
@@ -97,4 +87,3 @@ void loop() {
   
   FastLED.show();
 }
-
