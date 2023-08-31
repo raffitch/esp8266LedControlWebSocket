@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LED Control</title>
+  
+  <script type="text/javascript">
+    const webSocket = new WebSocket('ws://192.168.0.99:81');
+
+    webSocket.addEventListener('open', function() {
+      document.getElementById('connectionInfo').innerHTML = 'Connected to ws://192.168.0.99:81';
+    });
+    webSocket.addEventListener('close', function() {
+      document.getElementById('connectionInfo').innerHTML = 'Disconnected';
+    });
+
+    function generateForms() {
+      const numLeds = 16;
+      let formContainer = document.getElementById("formContainer");
+      formContainer.innerHTML = ""; // Clear existing forms
+
+      for (let i = 0; i < numLeds; i++) {
+        let ledForm = `
+          <h3>LED ${i+1}</h3>
+          <label for="intensity${i}">Intensity:</label>
+          <input type="range" id="intensity${i}" min="0" max="255" value="128" oninput="sendData()">
+        `;
+        formContainer.innerHTML += ledForm;
+      }
+    }
+
+    function sendData() {
+      let intensities = [];
+      for (let i = 0; i < 16; i++) {
+        intensities[i] = document.getElementById(`intensity${i}`).value;
+      }
+      
+      webSocket.send(JSON.stringify(intensities));
+    }
+
+    window.onload = function() {
+      generateForms();
+    };
+  </script>
+</head>
+<body>
+  <h1>LED Intensity Control</h1>
+  <h5>Control the intensity of each LED. The color is fixed to yellow.</h5>
+  <div id="connectionInfo">Connecting...</div>
+  <div id="formContainer">
+    <!-- LED intensity controls will be inserted here -->
+  </div>
+</body>
+</html>

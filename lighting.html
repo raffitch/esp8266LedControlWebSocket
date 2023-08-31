@@ -33,11 +33,11 @@
 <script>
 
 
-const webSocket = new WebSocket('ws://10.5.2.160:81');
+const webSocket = new WebSocket('ws://192.168.0.99:81');
 
 // Update the connectionInfo div when the WebSocket connection opens or closes
 webSocket.addEventListener('open', function() {
-document.getElementById('connectionInfo').innerHTML = 'Connected to ws://10.5.2.160:81';
+document.getElementById('connectionInfo').innerHTML = 'Connected to ws://192.168.0.99:81';
 });
 webSocket.addEventListener('close', function() {
 document.getElementById('connectionInfo').innerHTML = 'Disconnected';

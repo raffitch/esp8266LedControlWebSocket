@@ -4,17 +4,17 @@
 #define FASTLED_ALLOW_INTERRUPTS 0
 #include <FastLED.h>
 #define LED_PIN     D5
-#define NUM_LEDS    73
+#define NUM_LEDS    16
 
 CRGB leds[NUM_LEDS];
 CRGB targetLeds[NUM_LEDS];
 uint8_t targetIntensity[NUM_LEDS];
 
-const char* ssid = "DIDI";
-const char* password = "";
-IPAddress staticIP(10, 5, 2, 160);
-IPAddress gateway(10, 5, 0, 1);
-IPAddress subnet(255, 255, 252, 0);
+const char* ssid = "Linksys";
+const char* password = "1q2w3e4r5T";
+IPAddress staticIP(192, 168, 0, 99);
+IPAddress gateway(192, 168, 0, 1);
+IPAddress subnet(255, 255, 255, 0);
 
 WebSocketsServer webSocket = WebSocketsServer(81);
 DynamicJsonDocument jsonDoc(2 * 1024); // Increased size to accommodate array data
@@ -32,21 +32,20 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
       break;
     case WStype_TEXT:
       {
+        DynamicJsonDocument jsonDoc(1024);
         DeserializationError error = deserializeJson(jsonDoc, payload);
+
         if (error) {
           Serial.println("Failed to parse JSON");
           return;
         }
-
-        JsonArray ledIntensities = jsonDoc["ledIntensities"];
         
-        if (ledIntensities.size() <= NUM_LEDS) {
-          for (int i = 0; i < ledIntensities.size(); i++) {
-            targetIntensity[i] = ledIntensities[i];
-          }
+        JsonArray arr = jsonDoc.as<JsonArray>();
+        
+        for (int i = 0; i < arr.size() && i < NUM_LEDS; i++) {
+          targetIntensity[i] = arr[i];
+          targetLeds[i] = CRGB::Yellow; // Fixed color to yellow
         }
-        
-        Serial.println("Received LED intensities array");
       }
       break;
   }
@@ -77,13 +76,10 @@ void loop() {
 
   // Calculate the next LED states
   for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i].r = lerp8by8(leds[i].r, targetLeds[i].r, 128);
-    leds[i].g = lerp8by8(leds[i].g, targetLeds[i].g, 128);
-    leds[i].b = lerp8by8(leds[i].b, targetLeds[i].b, 128);
-
+    leds[i] = CRGB::Yellow; // Directly set each LED's color to yellow.
     uint8_t interpolatedIntensity = scale8(leds[i].getAverageLight(), targetIntensity[i]);
     leds[i].fadeToBlackBy(255 - interpolatedIntensity);
   }
-  
+
   FastLED.show();
 }
