@@ -85,11 +85,19 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     deserializeJson(doc, payload);
 
     JsonArray array = doc.as<JsonArray>();
-    for (int i = 0; i < NUM_LEDS; i++) {
+
+    // Get the RGB color from the first 3 values in the array
+    uint8_t red = array[0];
+    uint8_t green = array[1];
+    uint8_t blue = array[2];
+    RgbColor baseColor(red, green, blue);
+
+    // Apply intensity to the LEDs starting from the 4th value in the array
+    for (int i = 3; i < NUM_LEDS + 3; i++) {
       int intensity = array[i];
-      RgbColor color(255, 255, 0); // Yellow color
+      RgbColor color = baseColor;
       color.Darken(255 - intensity); // Darken based on the intensity
-      strip.SetPixelColor(i, color);
+      strip.SetPixelColor(i - 3, color);
     }
 
     // Update LEDs
