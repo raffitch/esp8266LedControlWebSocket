@@ -4,10 +4,10 @@
   <title>LED Control</title>
   
   <script type="text/javascript">
-    const webSocket = new WebSocket('ws://10.5.0.190:81');
+    const webSocket = new WebSocket('ws://192.168.0.88:81');
 
     webSocket.addEventListener('open', function() {
-      document.getElementById('connectionInfo').innerHTML = 'Connected to ws://10.5.0.190:81';
+      document.getElementById('connectionInfo').innerHTML = 'Connected';
     });
     webSocket.addEventListener('close', function() {
       document.getElementById('connectionInfo').innerHTML = 'Disconnected';

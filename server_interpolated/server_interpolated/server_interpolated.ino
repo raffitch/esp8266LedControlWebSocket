@@ -1,7 +1,6 @@
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
 #include <WebSocketsServer.h>
-#define FASTLED_ALLOW_INTERRUPTS 0
 #include <FastLED.h>
 
 // WiFi settings
@@ -48,7 +47,7 @@ void setup() {
   Serial.print("Connected to SSID: ");
   Serial.println(WiFi.SSID());  // Print the SSID to which we are connected
   Serial.print("Server IP address: ");
-  Serial.println(WiFi.localIP()); 
+  Serial.println(WiFi.localIP());  // Print the local IP address
 
   // Start the WebSocket server
   webSocket.begin();

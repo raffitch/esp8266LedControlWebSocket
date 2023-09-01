@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>basic 01</title>
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .dot {
+            fill: white;
+            opacity: 0.2;
+        }
+    </style>
+</head>
+<body>
+    <svg id="circleSvg" width="200" height="200" viewBox="0 0 200 200">
+        <!-- Dots will be dynamically added here -->
+    </svg>
+
+    <script>
+        const webSocket = new WebSocket('ws://192.168.0.88:81');  // Change IP to your ESP8266's IP
+        const numberOfDots = 72;
+        const svg = document.getElementById('circleSvg');
+        const center = { x: 100, y: 100 };
+        const radius = 80;
+        let intensityArray = Array(numberOfDots).fill(0);  // Initialize array to store intensity values
+
+        // Generate dots
+        for (let i = 0; i < numberOfDots; i++) {
+            let angle = 2 * Math.PI * i / numberOfDots;
+            let cx = center.x + radius * Math.cos(angle);
+            let cy = center.y + radius * Math.sin(angle);
+
+            let dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('cx', cx);
+            dot.setAttribute('cy', cy);
+            dot.setAttribute('r', '3');
+            dot.setAttribute('class', 'dot');
+            dot.setAttribute('data-index', i);  // Add data-index to identify the dot
+            svg.appendChild(dot);
+        }
+
+        // Handle mouse movement
+        svg.addEventListener('mousemove', function (e) {
+            let rect = svg.getBoundingClientRect();
+            let mouseX = e.clientX - rect.left;
+            let mouseY = e.clientY - rect.top;
+
+            document.querySelectorAll('.dot').forEach((dot, i) => {
+                let dx = mouseX - parseFloat(dot.getAttribute('cx'));
+                let dy = mouseY - parseFloat(dot.getAttribute('cy'));
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 10) {
+                    dot.style.opacity = 1;
+                    intensityArray[i] = 255;
+                } else {
+                    dot.style.opacity = 0.2;
+                    intensityArray[i] = 0;
+                }
+            });
+
+            // Send the intensity array to WebSocket
+            if (webSocket.readyState === WebSocket.OPEN) {
+                webSocket.send(JSON.stringify(intensityArray));
+            }
+        });
+    </script>
+</body>
+</html>
