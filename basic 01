@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>basic 01</title>
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .dot {
+            fill: white;
+            opacity: 0.2;
+            /* transition: opacity 2s;  */
+        }
+    </style>
+</head>
+
+<body>
+    <svg id="circleSvg" width="200" height="200" viewBox="0 0 200 200">
+        <!-- Dots will be dynamically added here -->
+    </svg>
+
+    <script>
+ const numberOfDots = 72;
+const svg = document.getElementById('circleSvg');
+const center = { x: 100, y: 100 };
+const radius = 80;
+
+// Function to generate dots
+for (let i = 0; i < numberOfDots; i++) {
+    let angle = 2 * Math.PI * i / numberOfDots;
+    let cx = center.x + radius * Math.cos(angle);
+    let cy = center.y + radius * Math.sin(angle);
+
+    let dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', cx);
+    dot.setAttribute('cy', cy);
+    dot.setAttribute('r', '3');
+    dot.setAttribute('class', 'dot');
+    svg.appendChild(dot);
+}
+
+let dots = document.querySelectorAll('.dot');
+
+// Function to safely fetch opacity
+function getOpacity(dot) {
+    let opacity = parseFloat(dot.style.opacity);
+    return isNaN(opacity) ? 0.2 : opacity; // default to 0.2 if opacity is not set or NaN
+}
+
+// Function to log the opacity values
+function logOpacities() {
+    let opacities = [];
+    dots.forEach(dot => {
+        opacities.push(getOpacity(dot) * 100);
+    });
+    console.log(opacities);
+}
+
+svg.addEventListener('mousemove', function (e) {
+    let rect = svg.getBoundingClientRect();
+    let mouseX = e.clientX - rect.left;
+    let mouseY = e.clientY - rect.top;
+    let changed = false; // flag to check if any opacity changed
+
+    dots.forEach(dot => {
+        let dx = mouseX - parseFloat(dot.getAttribute('cx'));
+        let dy = mouseY - parseFloat(dot.getAttribute('cy'));
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        let currentOpacity = getOpacity(dot);
+
+        if (distance < 10 && currentOpacity !== 1) {
+            dot.style.opacity = 1;
+            changed = true;
+        } else if (distance >= 10 && currentOpacity !== 0.2) {
+            dot.style.opacity = 0.2;
+            changed = true;
+        }
+    });
+
+    if (changed) {
+        logOpacities();
+    }
+});
+
+
+    </script>
+</body>
+
+</html>
