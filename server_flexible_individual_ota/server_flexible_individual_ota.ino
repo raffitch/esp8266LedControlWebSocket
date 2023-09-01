@@ -6,17 +6,17 @@
 #include <FastLED.h>
 
 #define LED_PIN     D5
-#define NUM_LEDS    16
+#define NUM_LEDS    73
 
 CRGB leds[NUM_LEDS];
 CRGB targetLeds[NUM_LEDS];
 uint8_t targetIntensity[NUM_LEDS];
 
-const char* ssid = "Linksys";
-const char* password = "1q2w3e4r5T";
-IPAddress staticIP(192, 168, 0, 99);
-IPAddress gateway(192, 168, 0, 1);
-IPAddress subnet(255, 255, 255, 0);
+const char* ssid = "DIDI";
+const char* password = "";
+IPAddress staticIP(10, 5, 0, 239);
+IPAddress gateway(10, 5, 0, 1);
+IPAddress subnet(255, 255, 252, 0);
 
 WebSocketsServer webSocket = WebSocketsServer(81);
 DynamicJsonDocument jsonDoc(2 * 1024);  // Increased size to accommodate array data

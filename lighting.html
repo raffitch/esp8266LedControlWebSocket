@@ -22,7 +22,7 @@
     <div style="transform:scale(-1,1)">
         Pie Radius: <input type="range" min="10" max="240" value="200" id="pieSize"><br>
         Circle Diameter: <input type="range" min="100" max="620" value="400" id="circleDiameter"><br>
-        Number of Regions: <input type="range" min="3" max="48" value="16" id="numRegions"><br>
+        Number of Regions: <input type="range" min="3" max="48" value="72" id="numRegions"><br>
         Movement Threshold: <input type="range" min="0" max="100" value="50" id="movementThreshold"><br>
     </div>
 
@@ -30,10 +30,10 @@
         let webSocket;
 
         function connectWebSocket() {
-            webSocket = new WebSocket('ws://192.168.0.99:81');
+            webSocket = new WebSocket('ws://10.5.0.239:81');
             // Update the connectionInfo div when the WebSocket connection opens or closes
             webSocket.addEventListener('open', function () {
-                document.getElementById('connectionInfo').innerHTML = 'Connected to ws://192.168.0.99:81';
+                document.getElementById('connectionInfo').innerHTML = 'Connected to ws://10.5.0.239:81';
             });
             webSocket.addEventListener('close', function () {
                 document.getElementById('connectionInfo').innerHTML = 'Disconnected';
