@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>basic 01</title>
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .controls {
+            margin-bottom: 20px;
+            color: white;
+        }
+        .dot {
+            fill: white;
+            opacity: 0.2;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h4>Default Opacity <span id="defaultOpacityValue">0.05</span></h4>
+        <input type="range" id="defaultOpacity" min="0" max="100" value="5">
+        
+        <h4>Maximum Opacity <span id="maxOpacityValue">1</span></h4>
+        <input type="range" id="maxOpacity" min="1" max="100" value="100">
+        
+        <h4>Animation Speed <span id="animationSpeedValue">50</span></h4>
+        <input type="range" id="animationSpeed" min="10" max="100" value="50">
+        
+        <h4>Interpolation Speed <span id="interpolationSpeedValue">0.10</span></h4>
+        <input type="range" id="interpolationSpeed" min="1" max="100" value="10">
+    </div>
+    <svg id="circleSvg" width="200" height="200" viewBox="0 0 200 200">
+        <!-- Dots will be dynamically added here -->
+    </svg>
+
+    <script>
+        const webSocket = new WebSocket('ws://192.168.0.88:81');
+        const numberOfDots = 72;
+        const svg = document.getElementById('circleSvg');
+        const center = { x: 100, y: 100 };
+        const radius = 80;
+        let currentDotIndex = 0;
+        let targetOpacities = Array(numberOfDots).fill(0.2);
+        let currentOpacities = Array(numberOfDots).fill(0.2);
+        let defaultOpacity = 0.05;
+        let interpolationSpeed = 0.1;
+        let animationSpeed = 50;
+
+        for (let i = 0; i < numberOfDots; i++) {
+            let angle = 2 * Math.PI * i / numberOfDots;
+            let cx = center.x + radius * Math.cos(angle);
+            let cy = center.y + radius * Math.sin(angle);
+
+            let dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('cx', cx);
+            dot.setAttribute('cy', cy);
+            dot.setAttribute('r', '3');
+            dot.setAttribute('class', 'dot');
+            dot.setAttribute('data-index', i);
+            svg.appendChild(dot);
+        }
+
+        function animate() {
+            // Reset the opacity of the last dot
+            let resetIndex = (currentDotIndex - 1 + numberOfDots) % numberOfDots;
+            targetOpacities[resetIndex] = defaultOpacity;
+
+            // Set the opacity of the current dot
+            targetOpacities[currentDotIndex] = 1;
+
+            // Update the currentDotIndex
+            currentDotIndex = (currentDotIndex + 1) % numberOfDots;
+
+            document.querySelectorAll('.dot').forEach((dot, i) => {
+                // Interpolate the opacity
+                currentOpacities[i] += (targetOpacities[i] - currentOpacities[i]) * interpolationSpeed;
+                dot.style.opacity = currentOpacities[i];
+            });
+
+            // Send data via WebSocket
+            if (webSocket.readyState === WebSocket.OPEN) {
+                const intensityArray = currentOpacities.map(opacity => Math.floor(opacity * 255));
+                webSocket.send(JSON.stringify(intensityArray));
+            }
+
+            // Continuously call the animate function
+            setTimeout(() => requestAnimationFrame(animate), animationSpeed);
+        }
+
+        // Start the animation loop
+        animate();
+
+        // Add these lines to your existing event listeners
+        document.getElementById("maxOpacity").addEventListener("input", function(event) {
+            maxOpacity = parseFloat(event.target.value) / 100;
+            document.getElementById("maxOpacityValue").innerText = maxOpacity.toFixed(2);
+        });
+
+        // Update existing event listeners to also change the displayed value
+        document.getElementById("defaultOpacity").addEventListener("input", function(event) {
+            defaultOpacity = parseFloat(event.target.value) / 100;
+            document.getElementById("defaultOpacityValue").innerText = defaultOpacity.toFixed(2);
+        });
+
+        document.getElementById("animationSpeed").addEventListener("input", function(event) {
+            animationSpeed = parseFloat(event.target.value);
+            document.getElementById("animationSpeedValue").innerText = animationSpeed;
+        });
+
+        document.getElementById("interpolationSpeed").addEventListener("input", function(event) {
+            interpolationSpeed = parseFloat(event.target.value) / 100;
+            document.getElementById("interpolationSpeedValue").innerText = interpolationSpeed.toFixed(2);
+        });
+    </script>
+</body>
+</html>
