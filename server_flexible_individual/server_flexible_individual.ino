@@ -4,20 +4,20 @@
 #define FASTLED_ALLOW_INTERRUPTS 0
 #include <FastLED.h>
 #define LED_PIN     D5
-#define NUM_LEDS    16
+#define NUM_LEDS    72
 
 CRGB leds[NUM_LEDS];
 CRGB targetLeds[NUM_LEDS];
 uint8_t targetIntensity[NUM_LEDS];
 
-const char* ssid = "Linksys";
-const char* password = "1q2w3e4r5T";
-IPAddress staticIP(192, 168, 0, 99);
-IPAddress gateway(192, 168, 0, 1);
-IPAddress subnet(255, 255, 255, 0);
+const char* ssid = "DIDI";
+const char* password = "";
+IPAddress staticIP(10, 5, 0, 190);
+IPAddress gateway(10, 5, 0, 1);
+IPAddress subnet(255, 255, 252, 0);
 
 WebSocketsServer webSocket = WebSocketsServer(81);
-DynamicJsonDocument jsonDoc(2 * 1024); // Increased size to accommodate array data
+DynamicJsonDocument jsonDoc(700); // Increased size to accommodate array data
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
   switch (type) {
@@ -32,7 +32,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
       break;
     case WStype_TEXT:
       {
-        DynamicJsonDocument jsonDoc(1024);
+
         DeserializationError error = deserializeJson(jsonDoc, payload);
 
         if (error) {

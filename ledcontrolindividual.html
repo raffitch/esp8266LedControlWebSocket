@@ -4,17 +4,17 @@
   <title>LED Control</title>
   
   <script type="text/javascript">
-    const webSocket = new WebSocket('ws://192.168.0.99:81');
+    const webSocket = new WebSocket('ws://10.5.0.190:81');
 
     webSocket.addEventListener('open', function() {
-      document.getElementById('connectionInfo').innerHTML = 'Connected to ws://192.168.0.99:81';
+      document.getElementById('connectionInfo').innerHTML = 'Connected to ws://10.5.0.190:81';
     });
     webSocket.addEventListener('close', function() {
       document.getElementById('connectionInfo').innerHTML = 'Disconnected';
     });
-
+    let light_num = 72
     function generateForms() {
-      const numLeds = 16;
+      const numLeds = light_num;
       let formContainer = document.getElementById("formContainer");
       formContainer.innerHTML = ""; // Clear existing forms
 
@@ -30,7 +30,7 @@
 
     function sendData() {
       let intensities = [];
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < light_num; i++) {
         intensities[i] = document.getElementById(`intensity${i}`).value;
       }
       

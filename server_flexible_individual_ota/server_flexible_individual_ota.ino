@@ -6,7 +6,8 @@
 #include <FastLED.h>
 
 #define LED_PIN     D5
-#define NUM_LEDS    73
+#define NUM_LEDS    72
+#define JSON_BUFFER_SIZE 700
 
 CRGB leds[NUM_LEDS];
 CRGB targetLeds[NUM_LEDS];
@@ -14,12 +15,12 @@ uint8_t targetIntensity[NUM_LEDS];
 
 const char* ssid = "DIDI";
 const char* password = "";
-IPAddress staticIP(10, 5, 0, 239);
+IPAddress staticIP(10, 5, 0, 190);
 IPAddress gateway(10, 5, 0, 1);
 IPAddress subnet(255, 255, 252, 0);
 
 WebSocketsServer webSocket = WebSocketsServer(81);
-DynamicJsonDocument jsonDoc(2 * 1024);  // Increased size to accommodate array data
+DynamicJsonDocument jsonDoc(JSON_BUFFER_SIZE);  // Increased size to accommodate array data
 
 void remotePrint(String msg) {
   for (int i = 0; i < webSocket.connectedClients(true); i++) {
@@ -37,11 +38,18 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
         IPAddress ip = webSocket.remoteIP(num);
         String msg = "Connected from: " + ip.toString();
         remotePrint(msg);
+        Serial.println("WebSocket connection established from: " + ip.toString());
       }
       break;
     case WStype_TEXT:
       {
-        DynamicJsonDocument jsonDoc(1024);
+        // Print the received payload to the serial monitor
+        Serial.print("Received message: ");
+        for(int i = 0; i < length; i++) {
+          Serial.print((char)payload[i]);
+        }
+        Serial.println();
+
         DeserializationError error = deserializeJson(jsonDoc, payload);
         if (error) {
           remotePrint("Failed to parse JSON");
@@ -49,8 +57,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
         }
         JsonArray arr = jsonDoc.as<JsonArray>();
         for (int i = 0; i < arr.size() && i < NUM_LEDS; i++) {
-          targetIntensity[i] = arr[i];
-          targetLeds[i] = CRGB::Yellow;  // Fixed color to yellow
+          targetIntensity[i] = arr[i]; // Fixed color to yellow
         }
       }
       break;
@@ -60,7 +67,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 void setup() {
   Serial.begin(115200);
   FastLED.addLeds<WS2811, LED_PIN, GRB>(leds, NUM_LEDS);
-
+  // fill_solid(leds, NUM_LEDS, CRGB::Yellow);
   WiFi.begin(ssid, password);
   WiFi.config(staticIP, gateway, subnet);
   while (WiFi.status() != WL_CONNECTED) {
@@ -80,15 +87,28 @@ void setup() {
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
 }
+const float interpolationSpeed = 0.05; // Speed of interpolation, between 0 and 1
 
 void loop() {
   webSocket.loop();
   ArduinoOTA.handle();  // Handle OTA updates
 
+  // for (int i = 0; i < NUM_LEDS; i++) {
+  //   uint8_t interpolatedIntensity = scale8(leds[i].getAverageLight(), targetIntensity[i]);
+  //   leds[i].fadeToBlackBy(255 - interpolatedIntensity);
+  // }
   for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = CRGB::Yellow;
-    uint8_t interpolatedIntensity = scale8(leds[i].getAverageLight(), targetIntensity[i]);
-    leds[i].fadeToBlackBy(255 - interpolatedIntensity);
+    // Retrieve current and target intensity for each LED
+    uint8_t currentIntensity = scale8(leds[i].getAverageLight(), 255);
+    uint8_t newTargetIntensity = targetIntensity[i];
+
+    // Interpolate between current and target intensity
+    uint8_t interpolatedIntensity = currentIntensity + (newTargetIntensity - currentIntensity) * interpolationSpeed;
+
+    // If the intensity has changed, update the LED
+    if (interpolatedIntensity != currentIntensity) {
+      leds[i] = CHSV(35, 255, interpolatedIntensity); // Yellow with dynamic intensity
+    }
   }
   
   FastLED.show();
