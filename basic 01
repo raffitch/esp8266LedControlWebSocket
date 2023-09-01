@@ -29,6 +29,17 @@
     </svg>
 
     <script>
+
+const webSocket = new WebSocket('ws://10.5.2.160:81');
+
+// Update the connectionInfo div when the WebSocket connection opens or closes
+webSocket.addEventListener('open', function() {
+document.getElementById('connectionInfo').innerHTML = 'Connected to ws://10.5.2.160:81';
+});
+webSocket.addEventListener('close', function() {
+document.getElementById('connectionInfo').innerHTML = 'Disconnected';
+});
+
  const numberOfDots = 72;
 const svg = document.getElementById('circleSvg');
 const center = { x: 100, y: 100 };
@@ -63,6 +74,7 @@ function logOpacities() {
         opacities.push(getOpacity(dot) * 100);
     });
     console.log(opacities);
+    webSocket.send(opacities);
 }
 
 svg.addEventListener('mousemove', function (e) {
