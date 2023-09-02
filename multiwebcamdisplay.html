@@ -28,46 +28,48 @@
 </div>
 
 <script>
-async function startWebcams() {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+function startWebcams(){
+    navigator.mediaDevices.enumerateDevices().then(function(devices) {
+    
+        let cams = []
+        let id = 0
 
-    console.log("Enumerated devices:", devices);
-    console.log("Filtered video devices:", videoDevices);
+        for (let i = 0; i < devices.length; i++) {
 
-    if(videoDevices.length === 0) {
-        console.log("No video devices found");
-        return;
-    }
-
-    for(let index = 0; index < videoDevices.length; index++) {
-        const device = videoDevices[index];
-        try {
-            console.log(`Trying to initialize device with id ${device.deviceId}`);
+            let device = devices[i];
             
-            const videoElement = document.createElement('video');
-            videoElement.id = `webcam${index}`;
+            if (device.kind != 'videoinput') continue;
+
+            console.log(`Trying to initialize device with id ${device.deviceId}`);
+
+            let videoElement = document.createElement('video');
+            videoElement.id = `webcam${id++}`;
             videoElement.width = 240;
             videoElement.height = 180;
             videoElement.autoplay = true;
-
             document.getElementById('webcams').appendChild(videoElement);
 
-            const stream = await navigator.mediaDevices.getUserMedia({
+            navigator.mediaDevices.getUserMedia({
                 video: {
                     deviceId: device.deviceId
                 }
+            })
+            .then(stream => {
+                videoElement.srcObject = stream;
+                console.log(`Successfully initialized device with id ${device.deviceId}`);
+            })
+            .catch(err => {
+                console.error(`Failed to initialize device with id ${device.deviceId}: ${err}`);
             });
-
-            videoElement.srcObject = stream;
-            console.log(`Successfully initialized device with id ${device.deviceId}`);
-        } catch (err) {
-            console.error(`Failed to initialize device with id ${device.deviceId}: ${err}`);
         }
-    }
+
+    }).catch(function(err) {
+        console.log(err.name + ": " + err.message);
+    });
 }
 
-startWebcams();
+window.onload = startWebcams;
+
 
 
 </script>
