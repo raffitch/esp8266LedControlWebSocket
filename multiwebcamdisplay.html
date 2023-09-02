@@ -28,11 +28,14 @@
 </div>
 
 <script>
-    async function startWebcams() {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+async function startWebcams() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
 
-        videoDevices.forEach(async (device, index) => {
+    console.log("Available Video Devices:", videoDevices);  // For debugging
+
+    videoDevices.forEach(async (device, index) => {
+        try {
             const videoElement = document.createElement('video');
             videoElement.id = `webcam${index}`;
             videoElement.width = 240;
@@ -43,15 +46,17 @@
 
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    deviceId: {
-                        exact: device.deviceId
-                    }
+                    deviceId: device.deviceId
                 }
             });
             
             videoElement.srcObject = stream;
-        });
-    }
+        } catch (err) {
+            console.error("Error initializing webcam:", err);
+        }
+    });
+}
+
 
     startWebcams();
 </script>
