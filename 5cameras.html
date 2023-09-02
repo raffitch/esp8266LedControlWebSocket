@@ -4,25 +4,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webcam Stream</title>
+    <title>Multiple Webcam Streams</title>
 </head>
 
 <body>
-    <video id="webcam" autoplay playsinline></video>
+    <video id="webcam1" autoplay playsinline></video>
+    <video id="webcam2" autoplay playsinline></video>
+    <video id="webcam3" autoplay playsinline></video>
+    <video id="webcam4" autoplay playsinline></video>
+    <video id="webcam5" autoplay playsinline></video>
 
     <script>
-        // Access the default camera
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function (stream) {
-                    // Display the video stream in the video element
-                    document.getElementById('webcam').srcObject = stream;
-                })
-                .catch(function (error) {
-                    console.error("Error accessing the webcam:", error);
-                });
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+            // List all media devices
+            navigator.mediaDevices.enumerateDevices().then(devices => {
+                let videoDevices = devices.filter(device => device.kind === 'videoinput');
+                const deviceCount = videoDevices.length;
+
+                if (deviceCount > 0) {
+                    for (let i = 0; i < Math.min(deviceCount, 5); i++) {
+                        console.log(`Device ID for webcam${i + 1}:`, videoDevices[i].deviceId);  // Log the device ID
+                        startStream(`webcam${i + 1}`, videoDevices[i].deviceId);
+                    }
+                } else {
+                    alert("No video devices detected.");
+                }
+            }).catch(err => {
+                console.error("Error enumerating devices:", err);
+            });
         } else {
-            alert("Your browser does not support webcam access.");
+            alert("Your browser does not support multiple webcam access.");
+        }
+
+        function startStream(elementId, deviceId) {
+            navigator.mediaDevices.getUserMedia({
+                video: {
+                    deviceId: deviceId
+                }
+            })
+            .then(function (stream) {
+                document.getElementById(elementId).srcObject = stream;
+            })
+            .catch(function (error) {
+                console.error(`Error accessing the webcam for ${elementId}:`, error);
+            });
         }
     </script>
 </body>
