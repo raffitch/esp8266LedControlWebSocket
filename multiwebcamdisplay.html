@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multi Webcam Test</title>
+</head>
+<body>
+
+<h1>Multi Webcam Feed</h1>
+
+<div id="webcams"></div>
+
+<script>
+    async function startWebcams() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+        videoDevices.forEach(async (device, index) => {
+            const videoElement = document.createElement('video');
+            videoElement.id = `webcam${index}`;
+            videoElement.width = 640;
+            videoElement.height = 480;
+            videoElement.autoplay = true;
+
+            document.getElementById('webcams').appendChild(videoElement);
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    deviceId: {
+                        exact: device.deviceId
+                    }
+                }
+            });
+            
+            videoElement.srcObject = stream;
+        });
+    }
+
+    startWebcams();
+</script>
+
+</body>
+</html>
