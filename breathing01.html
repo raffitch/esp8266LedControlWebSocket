@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>the air between us</title>
+    <style>
+        #output {
+            font-family: Arial, sans-serif;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body style="background-color:black;color:white">
+
+    <div>
+        <div id="connectionInfo">Connecting...</div>
+        <br>
+        Pie Radius: <input type="range" min="10" max="240" value="200" id="pieSize"> <span id="pieSizeValue">200</span><br>
+        Movement Threshold: <input type="range" min="0" max="100" value="50" id="movementThreshold"> <span id="movementThresholdValue">50</span><br>
+        Interpolation Factor: <input type="range" min="0" max="100" value="50" id="interpolationFactor"> <span id="interpolationFactorValue">5</span><br>
+        <br>
+        Brightness: <input type="range" min="-100" max="255" value="20" id="brightness"> <span id="brightnessValue">20</span><br>
+        Contrast: <input type="range" min="-100" max="100" value="30" id="contrast"> <span id="contrastValue">30</span><br>        
+        <br>
+        Black Ring Diameter: <input type="range" min="10" max="480" value="147" id="doughnutDiameter"> <span id="doughnutDiameterValue">200</span><br>
+        Black Ring Thickness: <input type="range" min="1" max="240" value="50" id="doughnutThickness"> <span id="doughnutThicknessValue">50</span><br>
+        <br>
+        <button id="switchCamera">Switch Camera</button>
+    </div>
+
+    <canvas id="canvas" width="640" height="480" style="border:1px solid;"></canvas>
+    <video id="webcam" width="640" height="480" autoplay muted></video>
+    <div id="output"></div>
+
+<script>
+
+    let currentCameraIndex = 0;
+    let cameras = [];
+
+    async function getAvailableCameras() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        cameras = devices.filter(device => device.kind === 'videoinput');
+    }
+
+    async function startCamera(camera) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                deviceId: camera.deviceId
+            }
+        });
+        document.getElementById('webcam').srcObject = stream;
+    }
+
+    document.getElementById('switchCamera').addEventListener('click', async () => {
+        if (cameras.length === 0) {
+            alert("No cameras found!");
+            return;
+        }
+        
+        currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+        startCamera(cameras[currentCameraIndex]);
+    });
+
+    // Initialize and start the first camera
+    getAvailableCameras().then(() => {
+        if (cameras.length > 0) {
+            startCamera(cameras[currentCameraIndex]);
+        } else {
+            alert("No cameras found!");
+        }
+    });
+        // WebSocket functionality
+        const webSocket = new WebSocket('ws://10.5.0.192:81');
+        webSocket.addEventListener('open', function () {
+            document.getElementById('connectionInfo').innerHTML = 'Connected';
+        });
+        webSocket.addEventListener('close', function () {
+            document.getElementById('connectionInfo').innerHTML = 'Disconnected';
+        });
+
+
+        let video = document.getElementById('webcam');
+        let canvas = document.getElementById('canvas');
+        let context = canvas.getContext('2d');
+        let output = document.getElementById('output');
+        let previousImageData = null;
+        let pieSizeInput = document.getElementById('pieSize');
+        let movementThresholdInput = document.getElementById('movementThreshold');
+        let brightnessInput = document.getElementById('brightness');
+        let contrastInput = document.getElementById('contrast');
+
+        let currentColor = [255, 255, 255];
+        let overallIntensity = 0;
+
+
+       let lastLoggedData = null;
+
+        function checkMovement() {
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    context.putImageData(adjustBrightnessContrast(imageData, parseInt(brightnessInput.value), parseInt(contrastInput.value)), 0, 0);
+
+    let currentImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    if (previousImageData) {
+        overallIntensity = computeOverallGreenMovement(previousImageData, currentImageData);
+        renderOverallIntensity(overallIntensity);
+        previousImageData = currentImageData;
+        
+        // Create and populate the dataToSend array
+        let opacityValue = Math.floor(overallIntensity * 255);
+        let dataToSend = [...currentColor];
+        for (let i = 0; i < 72; i++) {
+            dataToSend.push(opacityValue);
+        }
+        
+        if (!lastLoggedData || JSON.stringify(lastLoggedData) !== JSON.stringify(dataToSend)) {
+            console.log(dataToSend);
+        webSocket.send(JSON.stringify(dataToSend));
+            lastLoggedData = dataToSend;
+        }
+
+    } else {
+        previousImageData = currentImageData;
+    }
+    setTimeout(checkMovement, 100);
+}
+
+        function computeOverallGreenMovement(imageData1, imageData2) {
+            let totalGreenChange = 0;
+            for (let i = 0; i < imageData1.data.length; i += 4) {
+                let g1 = imageData1.data[i + 1];
+                let g2 = imageData2.data[i + 1];
+                totalGreenChange += Math.abs(g1 - g2);
+            }
+
+            return totalGreenChange / (canvas.width * canvas.height * 255);
+        }
+
+        function renderOverallIntensity(intensity) {
+            // Black overlay with 80% opacity
+            context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw white dot at the center with diameter based on intensity
+            let centerX = canvas.width / 2;
+            let centerY = canvas.height / 2;
+            let baseRadius = 5;
+            let dynamicRadius = baseRadius + (canvas.width / 2 * intensity);
+            context.beginPath();
+            context.arc(centerX, centerY, dynamicRadius, 0, 2 * Math.PI);
+            context.fillStyle = 'white';
+            context.fill();
+        }
+
+
+function adjustBrightnessContrast(imgData, brightness = 1, contrast = 1) {
+    let data = imgData.data;
+        let factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+        
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = factor * (data[i] - 128) + 128 + brightness;     // Red channel
+            data[i + 1] = factor * (data[i + 1] - 128) + 128 + brightness; // Green channel
+            data[i + 2] = factor * (data[i + 2] - 128) + 128 + brightness; // Blue channel
+        }
+        return imgData;
+        }
+
+        function isGreenDominant(r, g, b) {
+            return g > r && g > b;
+        }
+
+        video.onloadedmetadata = function () {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            requestAnimationFrame(checkMovement);
+        };
+
+        startWebcam();
+    </script>
+</body>
+
+</html>
