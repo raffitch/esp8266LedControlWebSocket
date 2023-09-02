@@ -1,13 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Multi Webcam Test</title>
+    <title>Multiple Webcams</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        #webcams {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            padding: 10px;
+        }
+        video {
+            width: 240px;
+            height: 180px;
+            border: 1px solid #ccc;
+            margin: auto;
+        }
+    </style>
 </head>
 <body>
 
-<h1>Multi Webcam Feed</h1>
-
-<div id="webcams"></div>
+<div id="webcams">
+    <!-- Webcam video elements will be appended here -->
+</div>
 
 <script>
     async function startWebcams() {
@@ -17,8 +35,8 @@
         videoDevices.forEach(async (device, index) => {
             const videoElement = document.createElement('video');
             videoElement.id = `webcam${index}`;
-            videoElement.width = 640;
-            videoElement.height = 480;
+            videoElement.width = 240;
+            videoElement.height = 180;
             videoElement.autoplay = true;
 
             document.getElementById('webcams').appendChild(videoElement);
