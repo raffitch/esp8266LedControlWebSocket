@@ -32,10 +32,17 @@ async function startWebcams() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter(device => device.kind === 'videoinput');
 
-    console.log("Available Video Devices:", videoDevices);  // For debugging
+    console.log("Enumerated devices:", devices);
+    console.log("Filtered video devices:", videoDevices);
+
+    if(videoDevices.length === 0) {
+        console.log("No video devices found");
+        return;
+    }
 
     videoDevices.forEach(async (device, index) => {
         try {
+            console.log(`Trying to initialize device with id ${device.deviceId}`);
             const videoElement = document.createElement('video');
             videoElement.id = `webcam${index}`;
             videoElement.width = 240;
@@ -49,16 +56,17 @@ async function startWebcams() {
                     deviceId: device.deviceId
                 }
             });
-            
+
             videoElement.srcObject = stream;
+            console.log(`Successfully initialized device with id ${device.deviceId}`);
         } catch (err) {
-            console.error("Error initializing webcam:", err);
+            console.error(`Failed to initialize device with id ${device.deviceId}: ${err}`);
         }
     });
 }
 
+startWebcams();
 
-    startWebcams();
 </script>
 
 </body>
