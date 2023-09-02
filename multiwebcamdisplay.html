@@ -40,9 +40,11 @@ async function startWebcams() {
         return;
     }
 
-    videoDevices.forEach(async (device, index) => {
+    for(let index = 0; index < videoDevices.length; index++) {
+        const device = videoDevices[index];
         try {
             console.log(`Trying to initialize device with id ${device.deviceId}`);
+            
             const videoElement = document.createElement('video');
             videoElement.id = `webcam${index}`;
             videoElement.width = 240;
@@ -62,10 +64,11 @@ async function startWebcams() {
         } catch (err) {
             console.error(`Failed to initialize device with id ${device.deviceId}: ${err}`);
         }
-    });
+    }
 }
 
 startWebcams();
+
 
 </script>
 
