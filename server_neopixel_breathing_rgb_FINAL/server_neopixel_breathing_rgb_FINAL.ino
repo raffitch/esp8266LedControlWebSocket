@@ -4,11 +4,17 @@
 #include <NeoPixelBus.h>
 
 // WiFi settings
-const char* ssid = "Linksys";
-const char* password = "1q2w3e4r5T";
-IPAddress staticIP(192, 168, 0, 88);
-IPAddress gateway(192, 168, 0, 1);
-IPAddress subnet(255, 255, 255, 0);
+// const char* ssid = "Linksys";
+// const char* password = "1q2w3e4r5T";
+// IPAddress staticIP(192, 168, 0, 88);
+// IPAddress gateway(192, 168, 0, 1);
+// IPAddress subnet(255, 255, 255, 0);
+
+const char* ssid = "DIDI";
+const char* password = "";
+IPAddress staticIP(10, 5, 0, 192);
+IPAddress gateway(10, 5, 0, 1);
+IPAddress subnet(255, 255, 252, 0);
 
 // NeoPixelBus settings
 #define NUM_LEDS 72
@@ -19,7 +25,7 @@ NeoPixelBus<NeoGrbFeature, NeoEsp8266Dma800KbpsMethod> strip(NUM_LEDS);
 // Create a WebSocket server
 WebSocketsServer webSocket = WebSocketsServer(81);
 
-unsigned long previousMillis = 0; 
+unsigned long previousMillis = 0;
 const long interval = 50;  // interval to refresh LEDs in milliseconds
 int brightness = 0;
 int fadeAmount = 5;
@@ -56,6 +62,8 @@ void setup() {
 void loop() {
   webSocket.loop();
 
+
+
   // Current time
   unsigned long currentMillis = millis();
 
@@ -63,13 +71,13 @@ void loop() {
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
 
-    if(webSocket.connectedClients() == 0) {
+    if (webSocket.connectedClients() == 0) {
       // If no clients are connected, create a fading pattern
       brightness = brightness + fadeAmount;
       if (brightness <= 0 || brightness >= 255) {
         fadeAmount = -fadeAmount;
       }
-      
+
       RgbColor lightRed(brightness, 0, 0);
       for (int i = 0; i < NUM_LEDS; i++) {
         strip.SetPixelColor(i, lightRed);
@@ -79,9 +87,9 @@ void loop() {
   }
 }
 
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
   if (type == WStype_TEXT) {
-    DynamicJsonDocument doc(1024);
+    DynamicJsonDocument doc(1500);
     deserializeJson(doc, payload);
 
     JsonArray array = doc.as<JsonArray>();
@@ -96,7 +104,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     for (int i = 3; i < NUM_LEDS + 3; i++) {
       int intensity = array[i];
       RgbColor color = baseColor;
-      color.Darken(255 - intensity); // Darken based on the intensity
+      color.Darken(255 - intensity);  // Darken based on the intensity
       strip.SetPixelColor(i - 3, color);
     }
 
@@ -104,4 +112,3 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     strip.Show();
   }
 }
-

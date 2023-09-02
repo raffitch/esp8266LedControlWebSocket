@@ -45,7 +45,7 @@
     </svg>
 
     <script>
-        const webSocket = new WebSocket('ws://192.168.0.88:81');
+        const webSocket = new WebSocket('ws://10.5.0.192:81');
         const numberOfDots = 72;
         const svg = document.getElementById('circleSvg');
         const center = { x: 100, y: 100 };
@@ -102,7 +102,9 @@
             if (webSocket.readyState === WebSocket.OPEN) {
              // Create an array with the RGB values followed by the intensity values
             const dataToSend = [...currentColor, ...currentOpacities.map(opacity => Math.floor(opacity * 255))];
+            console.log("Data to Send Length: ", dataToSend.length);
             webSocket.send(JSON.stringify(dataToSend));
+
             }
 
             // Continuously call the animate function
