@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Stream</title>
+</head>
+
+<body>
+    <video id="webcam" autoplay playsinline></video>
+
+    <script>
+        // Access the default camera
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function (stream) {
+                    // Display the video stream in the video element
+                    document.getElementById('webcam').srcObject = stream;
+                })
+                .catch(function (error) {
+                    console.error("Error accessing the webcam:", error);
+                });
+        } else {
+            alert("Your browser does not support webcam access.");
+        }
+    </script>
+</body>
+
+</html>
