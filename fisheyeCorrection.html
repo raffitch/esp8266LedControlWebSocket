@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Stream with Fisheye Correction</title>
+</head>
+<body>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+function undistortFisheye(ctx, video, focalLength) {
+    ctx.drawImage(video, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, video.width, video.height);
+    const data = imageData.data;
+    const newImageData = ctx.createImageData(video.width, video.height);
+    const newData = newImageData.data;
+
+    const cx = video.width / 2;
+    const cy = video.height / 2;
+
+    const maxAngle = 205 * Math.PI / 180;
+    const maxR = Math.sin(maxAngle / 2);
+
+    // Initialize the new image data to black (or any other color)
+    for (let i = 0; i < newData.length; i += 4) {
+        newData[i] = 0;
+        newData[i + 1] = 0;
+        newData[i + 2] = 0;
+        newData[i + 3] = 255;
+    }
+
+    for (let y = 0; y < video.height; y++) {
+        for (let x = 0; x < video.width; x++) {
+            const ndcX = (x - cx) / focalLength;
+            const ndcY = (y - cy) / focalLength;
+
+            const r = Math.sqrt(ndcX * ndcX + ndcY * ndcY);
+            const theta = 2 * Math.asin(r / maxR);
+            const correctedR = Math.tan(theta / 2);
+
+            const newX = Math.round((correctedR / r) * ndcX * focalLength + cx);
+            const newY = Math.round((correctedR / r) * ndcY * focalLength + cy);
+
+            if (newX >= 0 && newX < video.width && newY >= 0 && newY < video.height) {
+                const srcIdx = (y * video.width + x) * 4;
+                const destIdx = (newY * video.width + newX) * 4;
+
+                newData[destIdx] = data[srcIdx];
+                newData[destIdx + 1] = data[srcIdx + 1];
+                newData[destIdx + 2] = data[srcIdx + 2];
+                newData[destIdx + 3] = data[srcIdx + 3];
+            }
+        }
+    }
+
+    // Simple bilinear interpolation to fill gaps
+    for (let y = 1; y < video.height - 1; y++) {
+        for (let x = 1; x < video.width - 1; x++) {
+            const idx = (y * video.width + x) * 4;
+
+            if (newData[idx] === 0 && newData[idx + 1] === 0 && newData[idx + 2] === 0) {
+                let count = 0;
+                let r = 0, g = 0, b = 0;
+
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const neighborIdx = ((y + dy) * video.width + (x + dx)) * 4;
+
+                        if (newData[neighborIdx] !== 0 || newData[neighborIdx + 1] !== 0 || newData[neighborIdx + 2] !== 0) {
+                            r += newData[neighborIdx];
+                            g += newData[neighborIdx + 1];
+                            b += newData[neighborIdx + 2];
+                            count++;
+                        }
+                    }
+                }
+
+                if (count > 0) {
+                    newData[idx] = r / count;
+                    newData[idx + 1] = g / count;
+                    newData[idx + 2] = b / count;
+                }
+            }
+        }
+    }
+
+    ctx.putImageData(newImageData, 0, 0);
+}
+
+
+
+
+        navigator.mediaDevices.enumerateDevices().then((devices) => {
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const usbCamera = videoDevices[0];  // You can adjust this index
+
+            if (usbCamera) {
+                navigator.mediaDevices.getUserMedia({
+                    video: {
+                        deviceId: usbCamera.deviceId,
+                        width: 640,
+                        height: 480
+                    }
+                }).then((stream) => {
+                    const video = document.getElementById('video');
+                    video.srcObject = stream;
+
+                    const canvas = document.getElementById('canvas');
+                    canvas.width = 640;
+                    canvas.height = 480;
+                    const ctx = canvas.getContext('2d');
+
+                    video.addEventListener('play', function() {
+                        setInterval(() => {
+                            undistortFisheye(ctx, video, 400);  // You can change the focal length based on your needs
+                        }, 16);
+                    }, false);
+                }).catch((err) => {
+                    console.log('Error: ' + err);
+                });
+            }
+        }).catch((err) => {
+            console.log('Error enumerating devices: ' + err);
+        });
+    </script>
+</body>
+</html>

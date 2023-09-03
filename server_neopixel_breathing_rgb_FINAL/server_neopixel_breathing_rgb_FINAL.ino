@@ -17,7 +17,8 @@ IPAddress gateway(10, 5, 0, 1);
 IPAddress subnet(255, 255, 252, 0);
 
 // NeoPixelBus settings
-#define NUM_LEDS 72
+// #define NUM_LEDS 72
+#define NUM_LEDS 51
 
 // Using DMA method; this is specific to GPIO3 (RX)
 NeoPixelBus<NeoGrbFeature, NeoEsp8266Dma800KbpsMethod> strip(NUM_LEDS);
