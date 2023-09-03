@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Circle Viewer</title>
+    <style>
+        #container {
+            position: relative;
+            display: inline-block;
+        }
+
+        canvas,
+        video {
+            position: absolute;
+            top: 400;
+            left: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+    </style>
+</head>
+
+<body style="background-color: black;color:white">
+    <h1>THE AIR BETWEEN US</h1>
+    <div id="container">
+        <video id="video" width="640" height="480" autoplay></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+    <div style="position:absolute;bottom:0;z-index:10">
+        Movement Threshold: <input type="range" min="0" max="100" value="85" id="movementThreshold"> <span
+            id="movementThresholdValue">50</span><br>
+        Interpolation Factor: <input type="range" min="0" max="100" value="50" id="interpolationFactor"> <span
+            id="interpolationFactorValue">5</span><br>
+        Brightness: <input type="range" min="-100" max="255" value="20" id="brightness"> <span
+            id="brightnessValue">20</span><br>
+        Contrast: <input type="range" min="-100" max="100" value="30" id="contrast"> <span
+            id="contrastValue">30</span><br>
+    </div>
+
+    <script>
+
+
+        let movementThresholdInput = document.getElementById('movementThreshold');
+        let brightnessInput = document.getElementById('brightness');
+        let contrastInput = document.getElementById('contrast');
+
+        const allwebsockets = {};
+
+        let currentColor = [255, 0, 0];
+
+        function updateSliderValue(sliderId, outputId) {
+            let slider = document.getElementById(sliderId);
+            let output = document.getElementById(outputId);
+            output.textContent = slider.value;
+            slider.addEventListener('input', function () {
+                output.textContent = this.value;
+            });
+        }
+
+        updateSliderValue('movementThreshold', 'movementThresholdValue');
+        updateSliderValue('brightness', 'brightnessValue');
+        updateSliderValue('contrast', 'contrastValue');
+        updateSliderValue('interpolationFactor', 'interpolationFactorValue');
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let pies = [];
+        let last_movement_values = {};
+        let previousImageData = null;
+        let allregions = {};
+        let alllastLoggedData = {};
+        let allpreviousOpacities = {};
+
+        let context = canvas.getContext('2d');
+
+        ctx.strokeStyle = "white";
+
+        // Load the JSON file on page load
+        window.addEventListener('DOMContentLoaded', (event) => {
+            fetch('the_air_between_us-setup_layout.json')
+                .then(response => response.json())
+                .then(data => {
+                    pies = data;
+                    // drawAll();
+                    connect();
+                    setdatastructure();
+                })
+                .catch(error => {
+                    console.error("Error loading the JSON file:", error);
+                });
+        });
+
+
+        function setdatastructure() {
+            pies.forEach(pie => {
+                let firstmovementarray = [];
+                let slices = pie.slices;
+                for (let i = 0; i < slices; i++) {
+                    firstmovementarray.push(0);
+                }
+                last_movement_values[pie.websocketURL] = firstmovementarray;
+                alllastLoggedData[pie.websocketURL] = [];
+                allpreviousOpacities[pie.websocketURL] = [];
+            });
+            console.log(last_movement_values)
+
+            computeRegions()
+        };
+
+        function connect() {
+            // WebSocket functionality
+            pies.forEach(pie => {
+                let webSocket = new WebSocket(pie.websocketURL + ":81");
+                allwebsockets[pie.websocketURL] = webSocket;
+                webSocket.addEventListener('open', function () {
+                    console.log(pie.websocketURL + 'Connected');
+                });
+                webSocket.addEventListener('close', function () {
+                    console.log(pie.websocketURL + 'Disconnected');
+                });
+            })
+
+        };
+
+        function startWebcam() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.play();
+                })
+                .catch(err => {
+                    console.error('Error accessing webcam: ', err);
+                });
+        }
+
+        function drawAll() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            pies.forEach(pie => {
+                drawPie(pie);
+            });
+        }
+
+        function drawPie(pie) {
+            ctx.beginPath();
+            ctx.arc(pie.x, pie.y, pie.diameter / 2, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            // Draw slices
+            for (let i = 0; i < pie.slices; i++) {
+                ctx.beginPath();
+                ctx.moveTo(pie.x, pie.y);
+                ctx.lineTo(
+                    pie.x + (pie.diameter / 2) * Math.cos(2 * Math.PI * i / pie.slices),
+                    pie.y + (pie.diameter / 2) * Math.sin(2 * Math.PI * i / pie.slices)
+                );
+                ctx.stroke();
+            }
+
+            // Draw mask ring
+            ctx.beginPath();
+            ctx.lineWidth = pie.ringThickness;
+            ctx.arc(pie.x, pie.y, pie.ringDiameter / 2, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.lineWidth = 1; // Reset lineWidth
+
+            // Add number to the pie
+            const pieIndex = pies.indexOf(pie) + 1;
+            ctx.fillStyle = "white";
+            ctx.font = "16px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(pieIndex.toString(), pie.x, pie.y);
+        }
+
+        startWebcam();
+
+
+        function adjustBrightnessContrast(imgData, brightness = 1, contrast = 1) {
+            let data = imgData.data;
+            let factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = factor * (data[i] - 128) + 128 + brightness;     // Red channel
+                data[i + 1] = factor * (data[i + 1] - 128) + 128 + brightness; // Green channel
+                data[i + 2] = factor * (data[i + 2] - 128) + 128 + brightness; // Blue channel
+            }
+            return imgData;
+        }
+
+        function isGreenDominant(r, g, b) {
+            return g > r && g > b;
+        }
+
+        function computeRegions() {
+            pies.forEach(pie => {
+                let regions = [];
+                let numRegions = pie.slices;
+                let pieSize = pie.diameter;
+                let centerX = pie.x;
+                let centerY = pie.y;
+
+                for (let i = 0; i < numRegions; i++) {
+                    let startAngle = (i / numRegions) * (2 * Math.PI);
+                    let endAngle = ((i + 1) / numRegions) * (2 * Math.PI);
+                    regions.push({ centerX, centerY, startAngle, endAngle, radius: pieSize / 2 });
+                }
+                allregions[pie.websocketURL] = regions;
+            })
+            checkMovement();
+        }
+
+
+        function checkMovement() {
+
+
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            context.putImageData(adjustBrightnessContrast(imageData, parseInt(brightnessInput.value), parseInt(contrastInput.value)), 0, 0);
+            let currentImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+
+            pies.forEach(pie => {
+
+                let thiswebsocket = pie.websocketURL;
+
+                let doughnutDiameter = pie.ringDiameter;
+                let doughnutThickness = pie.ringDiameter;
+                let centerX = pie.x;
+                let centerY = pie.y;
+
+                context.beginPath();
+                context.arc(centerX, centerY, doughnutDiameter / 2, 0, Math.PI * 2);
+                context.arc(centerX, centerY, (doughnutDiameter - doughnutThickness) / 2, 0, Math.PI * 2, true);
+                context.closePath();
+
+                context.fillStyle = "black";
+                context.strokeStyle = "grey";
+                context.fill();
+
+
+
+
+                context.lineWidth = 0;
+
+
+
+                let regions = allregions[thiswebsocket];
+                for (let region of regions) {
+                    context.beginPath();
+                    context.moveTo(region.centerX, region.centerY);
+                    context.arc(region.centerX, region.centerY, region.radius, region.startAngle, region.endAngle);
+                    context.closePath();
+                    context.stroke();
+                }
+
+
+
+
+                if (previousImageData) {
+
+                    let movementValues = regions.map(region => computeMovement(pie, previousImageData, currentImageData, region));
+                    let remappedValues = movementValues.map(val => Math.min(Math.round(val * 1023), 1023));
+                    let movementThreshold = parseFloat(movementThresholdInput.value) / 100;
+
+
+                    let previousOpacities = allpreviousOpacities[thiswebsocket];
+
+                    remappedValues.forEach((val, index) => {
+                        let region = regions[index];
+                        let midAngle = (region.startAngle + region.endAngle) / 2;
+                        let targetOpacity;
+                        if ((val / 1023) > movementThreshold) {
+                            targetOpacity = 1;
+                            previousOpacities[index] = 1;
+                        } else {
+                            targetOpacity = 0.01;
+                        }
+
+                        let previousOpacity = previousOpacities[index] || 0.1;
+                        let interpolationFactor = parseFloat(document.getElementById('interpolationFactor').value) / 100;
+                        let opacity = previousOpacity + interpolationFactor * (targetOpacity - previousOpacity);
+
+                        let distanceFromCenter = region.radius / 2;
+                        let dotX = region.centerX + distanceFromCenter * Math.cos(midAngle);
+                        let dotY = region.centerY + distanceFromCenter * Math.sin(midAngle);
+
+                        context.beginPath();
+                        context.arc(dotX, dotY, 3, 0, 2 * Math.PI);
+                        context.fillStyle = `rgba(255, 0, 255, ${opacity})`;
+                        context.fill();
+
+                        previousOpacities[index] = opacity;
+                    });
+
+                    let averageRadius = regions.reduce((acc, curr) => acc + curr.radius, 0) / regions.length;
+                    let innerRingRadius = averageRadius / 4;
+
+                    for (let region of regions) {
+                        context.beginPath();
+                        context.moveTo(region.centerX, region.centerY);
+                        context.arc(region.centerX, region.centerY, region.radius, region.startAngle, region.endAngle);
+                        context.closePath();
+                        context.stroke();
+                    }
+
+
+                    let remappedOpacities = previousOpacities.map(opacity => Math.floor(opacity * 255));
+                    let dataToSend = [...currentColor, ...remappedOpacities];
+                    let lastLoggedData = alllastLoggedData[thiswebsocket];
+
+
+                    if (!lastLoggedData || JSON.stringify(lastLoggedData) !== JSON.stringify(dataToSend)) {
+                        // console.log(JSON.stringify(dataToSend));
+                        // console.log(allwebsockets[pie.websocketURL])
+                        allwebsockets[pie.websocketURL].send(JSON.stringify(dataToSend));
+                        alllastLoggedData[thiswebsocket] = dataToSend;
+                    }
+
+                //  previousImageData = currentImageData;
+                } 
+                // else {
+                //     previousImageData = currentImageData;
+                // }
+
+
+
+            })
+
+
+            // })
+
+            previousImageData = currentImageData;
+
+            setTimeout(checkMovement, 100);
+        }
+
+
+
+        function computeMovement(pie, imageData1, imageData2, region) {
+
+            let totalChange = 0;
+
+            // Get the doughnut values
+            let doughnutDiameter = pie.ringDiameter;
+            let doughnutThickness = pie.ringThickness;
+            let centerX = pie.x;
+            let centerY = pie.y;
+            let outerRadiusSquared = (doughnutDiameter / 2) ** 2;
+            let innerRadiusSquared = ((doughnutDiameter - doughnutThickness) / 2) ** 2;
+
+
+            for (let r = 0; r < region.radius; r++) {
+                for (let theta = region.startAngle; theta < region.endAngle; theta += 0.01) {
+                    let x = region.centerX + r * Math.cos(theta);
+                    let y = region.centerY + r * Math.sin(theta);
+
+                    // Calculate squared distance from the center
+                    let dx = x - centerX;
+                    let dy = y - centerY;
+                    let distanceSquared = dx * dx + dy * dy;
+
+                    // Check if the pixel is within the doughnut area
+                    if (distanceSquared >= innerRadiusSquared && distanceSquared <= outerRadiusSquared) {
+                        continue; // Skip this pixel
+                    }
+
+                    let i = (Math.floor(y) * imageData1.width + Math.floor(x)) * 4;
+
+                    let r1 = imageData1.data[i];
+                    let g1 = imageData1.data[i + 1];
+                    let b1 = imageData1.data[i + 2];
+
+                    let r2 = imageData2.data[i];
+                    let g2 = imageData2.data[i + 1];
+                    let b2 = imageData2.data[i + 2];
+
+                    if (isGreenDominant(r1, g1, b1) || isGreenDominant(r2, g2, b2)) {
+                        let colorChange = Math.abs(g1 - g2);
+                        totalChange += colorChange;
+                    }
+                }
+            }
+
+            return totalChange / (Math.PI * region.radius * (region.endAngle - region.startAngle) * 255);
+
+        }
+
+
+
+
+
+    </script>
+</body>
+
+</html>
