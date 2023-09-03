@@ -268,7 +268,7 @@ document.getElementById('finalizeBtn').addEventListener('click', () => {
         // Create a download link and programmatically click it to start the download
         let a = document.createElement('a');
         a.href = url;
-        a.download = 'pies_data.json';
+        a.download = 'the_air_between_us-setup_layout.json';
         document.body.appendChild(a); // Temporarily add to the DOM
         a.click();
         document.body.removeChild(a); // Clean up by removing from the DOM
