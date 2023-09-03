@@ -303,36 +303,37 @@ document.getElementById('finalizeBtn').addEventListener('click', () => {
     });
 
 
-    let isDragging = false;
-let draggedPie = null;
+//     let isDragging = false;
+// let draggedPie = null;
 
-function isInsideCircle(mouseX, mouseY, pie) {
-    const distance = Math.sqrt((mouseX - pie.x) ** 2 + (mouseY - pie.y) ** 2);
-    return distance <= pie.diameter / 2;
-}
+// function isInsideCircle(mouseX, mouseY, pie) {
+//     const distance = Math.sqrt((mouseX - pie.x) ** 2 + (mouseY - pie.y) ** 2);
+//     return distance <= pie.diameter / 2;
+// }
 
-canvas.addEventListener('mousedown', (e) => {
-    for (let pie of pies) {
-        if (isInsideCircle(e.offsetX, e.offsetY, pie)) {
-            isDragging = true;
-            draggedPie = pie;
-            break;
-        }
-    }
-});
+// canvas.addEventListener('mousedown', (e) => {
+//     for (let pie of pies) {
+//         if (isInsideCircle(e.offsetX, e.offsetY, pie)) {
+//             isDragging = true;
+//             draggedPie = pie;
+//             break;
+//         }
+//     }
+// });
 
-canvas.addEventListener('mousemove', (e) => {
-    if (isDragging && draggedPie) {
-        draggedPie.x = e.offsetX;
-        draggedPie.y = e.offsetY;
-        drawAll();
-    }
-});
+// canvas.addEventListener('mousemove', (e) => {
+//     if (isDragging && draggedPie) {
+//         draggedPie.x = e.offsetX;
+//         draggedPie.y = e.offsetY;
+//         drawAll();
+//     }
+// });
 
-canvas.addEventListener('mouseup', () => {
-    isDragging = false;
-    draggedPie = null;
-});
+// canvas.addEventListener('mouseup', () => {
+//     isDragging = false;
+//     draggedPie = null;
+// });
+
 
 
     startWebcam();
