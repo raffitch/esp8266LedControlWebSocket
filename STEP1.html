@@ -34,7 +34,15 @@
             <label>Quantity of LEDs: <input id="slicesInput" type="number" min="2" max="100" value="91"></label>
             <label>Mask Ring Diameter: <input id="ringDiameterSlider" type="range" min="10" max="300" value="60"></label>
             <label>Ring Thickness: <input id="ringThicknessSlider" type="range" min="1" max="50" value="5"></label>
-            <label>WebSocket URL: <input id="websocketURL" type="text" placeholder="ws://..."></label>
+            <label>WebSocket URL: 
+                <select id="websocketURL" class="websocketDropdown">
+                    <option value="ws://192.168.0.110">ws://192.168.0.110</option>
+                    <option value="ws://192.168.0.120">ws://192.168.0.120</option>
+                    <option value="ws://192.168.0.130">ws://192.168.0.130</option>
+                    <option value="ws://192.168.0.140">ws://192.168.0.140</option>
+                    <option value="ws://192.168.0.150">ws://192.168.0.150</option>
+                </select>
+            </label>
             <br>
             <!-- <button id="saveBtn">Save This Plant</button> -->
 
@@ -106,7 +114,15 @@ function appendPieControls(pie) {
         <label>Quantity of LEDs: <input class="slicesInput" type="number" min="2" max="100" value="${pie.slices}"></label>
         <label>Mask Ring Diameter: <input class="ringDiameterInput" type="range" min="10" max="300" value="${pie.ringDiameter}"></label>
         <label>Ring Thickness: <input class="ringThicknessInput" type="range" min="1" max="50" value="${pie.ringThickness}"></label>
-        <label>WebSocket URL: <input class="websocketInput" type="text" value="${pie.websocketURL}"></label>
+        <label>WebSocket URL: 
+            <select class="websocketDropdown">
+                <option value="ws://192.168.0.110">ws://192.168.0.110</option>
+                <option value="ws://192.168.0.120">ws://192.168.0.120</option>
+                <option value="ws://192.168.0.130">ws://192.168.0.130</option>
+                <option value="ws://192.168.0.140">ws://192.168.0.140</option>
+                <option value="ws://192.168.0.150">ws://192.168.0.150</option>
+            </select>
+        </label>
         <hr>
     `;
 
@@ -135,10 +151,10 @@ function appendPieControls(pie) {
         drawAll();
     });
 
-    newControls.querySelector(".websocketInput").addEventListener('input', function(e) {
-        let pie = pies[this.closest('.pieControls').getAttribute('data-index')];
-        pie.websocketURL = e.target.value;
-    });
+    newControls.querySelector(".websocketDropdown").addEventListener('change', function (e) {
+                let pie = pies[this.closest('.pieControls').getAttribute('data-index')];
+                pie.websocketURL = e.target.value;
+            });
 
     controlsDiv.insertBefore(newControls, controlsDiv.firstChild);
 }
@@ -151,11 +167,11 @@ function appendPieControls(pie) {
         document.getElementById('ringThicknessSlider').value = currentPie.ringThickness;
     }
 
-    document.getElementById('websocketURL').addEventListener('input', (e) => {
-    if (currentPie) {
-        currentPie.websocketURL = e.target.value;
-    }
-});
+//     document.getElementById('websocketURL').addEventListener('input', (e) => {
+//     if (currentPie) {
+//         currentPie.websocketURL = e.target.value;
+//     }
+// });
 
 
     function drawAll() {
