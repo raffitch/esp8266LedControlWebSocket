@@ -1,0 +1,325 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE AIR BETWEEN US - SETTING UP - STEP 1</title>
+    <style>
+        #container {
+            position: relative;
+            display: inline-block;
+        }
+        canvas, video {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #instructions {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        #controls {
+            position: relative;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div style="height:200px;margin:20px">
+        <p id="instructions">Click on the video feed to set the position of your circle.</p>
+        <div id="controls">
+            <label>Diameter: <input id="diameterSlider" type="range" min="10" max="300" value="50"></label>
+            <label>Quantity of LEDs: <input id="slicesInput" type="number" min="2" max="100" value="91"></label>
+            <label>Mask Ring Diameter: <input id="ringDiameterSlider" type="range" min="10" max="300" value="60"></label>
+            <label>Ring Thickness: <input id="ringThicknessSlider" type="range" min="1" max="50" value="5"></label>
+            <label>WebSocket URL: <input id="websocketURL" type="text" placeholder="ws://..."></label>
+            <br>
+            <!-- <button id="saveBtn">Save This Plant</button> -->
+
+        <button id="finalizeBtn">Finalize the layout</button>
+        </div>
+    </div>
+    <div id="container">
+        <video id="video" width="640" height="480" autoplay></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+
+<script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const pies = [];
+    let currentPie = null;
+
+    ctx.strokeStyle = "white";  // Set line color to white
+
+    function startWebcam() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                video.play();
+            })
+            .catch(err => {
+                console.error('Error accessing webcam: ', err);
+            });
+    }
+
+    function canvasClickHandler(e) {
+    if (currentPie) {
+        // Save the current pie and prepare for the next
+        if (document.querySelector(`[data-index='${pies.length}'] .websocketInput`)) {
+            currentPie.websocketURL = document.querySelector(`[data-index='${pies.length}'] .websocketInput`).value;
+        } else {
+            currentPie.websocketURL = document.getElementById('websocketURL').value;
+        }
+        pies.push(currentPie);
+        appendPieControls(currentPie);
+        currentPie = null;
+    }
+
+    currentPie = { 
+        x: e.offsetX, 
+        y: e.offsetY, 
+        diameter: 50, 
+        slices: 91, 
+        ringDiameter: 60, 
+        ringThickness: 5,
+        websocketURL: ""  // Initialize with empty string
+    };
+
+    updateSliders();
+    drawAll();
+    document.getElementById('instructions').textContent = 'Adjust the diameter, slices, and ring properties using the controls below. Then, click on the video feed to save and add another circle.';
+}
+canvas.addEventListener('click', canvasClickHandler);
+
+function appendPieControls(pie) {
+    const controlsDiv = document.getElementById('controls');
+    const newControls = document.createElement('div');
+    newControls.className = "pieControls";
+    newControls.setAttribute('data-index', pies.indexOf(pie)); // Associate controls with pie using data-index
+
+    newControls.innerHTML = `
+        <label>Diameter: <input class="diameterInput" type="range" min="10" max="300" value="${pie.diameter}"></label>
+        <label>Quantity of LEDs: <input class="slicesInput" type="number" min="2" max="100" value="${pie.slices}"></label>
+        <label>Mask Ring Diameter: <input class="ringDiameterInput" type="range" min="10" max="300" value="${pie.ringDiameter}"></label>
+        <label>Ring Thickness: <input class="ringThicknessInput" type="range" min="1" max="50" value="${pie.ringThickness}"></label>
+        <label>WebSocket URL: <input class="websocketInput" type="text" value="${pie.websocketURL}"></label>
+        <hr>
+    `;
+
+    // Add event listeners to the new controls
+    newControls.querySelector(".diameterInput").addEventListener('input', function(e) {
+        let pie = pies[this.closest('.pieControls').getAttribute('data-index')]; // Get associated pie
+        pie.diameter = e.target.value;
+        drawAll();
+    });
+
+    newControls.querySelector(".slicesInput").addEventListener('input', function(e) {
+        let pie = pies[this.closest('.pieControls').getAttribute('data-index')];
+        pie.slices = e.target.value;
+        drawAll();
+    });
+
+    newControls.querySelector(".ringDiameterInput").addEventListener('input', function(e) {
+        let pie = pies[this.closest('.pieControls').getAttribute('data-index')];
+        pie.ringDiameter = e.target.value;
+        drawAll();
+    });
+
+    newControls.querySelector(".ringThicknessInput").addEventListener('input', function(e) {
+        let pie = pies[this.closest('.pieControls').getAttribute('data-index')];
+        pie.ringThickness = e.target.value;
+        drawAll();
+    });
+
+    newControls.querySelector(".websocketInput").addEventListener('input', function(e) {
+        let pie = pies[this.closest('.pieControls').getAttribute('data-index')];
+        pie.websocketURL = e.target.value;
+    });
+
+    controlsDiv.insertBefore(newControls, controlsDiv.firstChild);
+}
+
+
+    function updateSliders() {
+        document.getElementById('diameterSlider').value = currentPie.diameter;
+        document.getElementById('slicesInput').value = currentPie.slices;
+        document.getElementById('ringDiameterSlider').value = currentPie.ringDiameter;
+        document.getElementById('ringThicknessSlider').value = currentPie.ringThickness;
+    }
+
+    document.getElementById('websocketURL').addEventListener('input', (e) => {
+    if (currentPie) {
+        currentPie.websocketURL = e.target.value;
+    }
+});
+
+
+    function drawAll() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);  // Clear previous drawings
+
+        for (let pie of pies) {
+            drawPie(pie);
+        }
+
+        if (currentPie) {
+            drawPie(currentPie);
+        }
+    }
+
+    function drawPie(pie) {
+        ctx.beginPath();
+        ctx.arc(pie.x, pie.y, pie.diameter / 2, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // Draw slices
+        for (let i = 0; i < pie.slices; i++) {
+            ctx.beginPath();
+            ctx.moveTo(pie.x, pie.y);
+            ctx.lineTo(
+                pie.x + (pie.diameter / 2) * Math.cos(2 * Math.PI * i / pie.slices),
+                pie.y + (pie.diameter / 2) * Math.sin(2 * Math.PI * i / pie.slices)
+            );
+            ctx.stroke();
+        }
+
+        // Draw mask ring
+        ctx.beginPath();
+        ctx.lineWidth = pie.ringThickness;
+        ctx.arc(pie.x, pie.y, pie.ringDiameter / 2, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.lineWidth = 1; // Reset lineWidth
+
+            // Add number to the pie
+    const pieIndex = pies.indexOf(pie) + 1;  // get the index of the pie and add 1 (since array starts at 0)
+    ctx.fillStyle = "white";  // set the fill color to white
+    ctx.font = "16px Arial";  // set the font size and type
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(pieIndex.toString(), pie.x, pie.y);  // display the number in the center of the pie
+
+    }
+
+    document.getElementById('diameterSlider').addEventListener('input', (e) => {
+        if (currentPie) {
+            currentPie.diameter = e.target.value;
+            drawAll();
+        }
+    });
+
+    document.getElementById('slicesInput').addEventListener('input', (e) => {
+        if (currentPie) {
+            currentPie.slices = e.target.value;
+            drawAll();
+        }
+    });
+
+    document.getElementById('ringDiameterSlider').addEventListener('input', (e) => {
+        if (currentPie) {
+            currentPie.ringDiameter = e.target.value;
+            drawAll();
+        }
+    });
+
+    document.getElementById('ringThicknessSlider').addEventListener('input', (e) => {
+        if (currentPie) {
+            currentPie.ringThickness = e.target.value;
+            drawAll();
+        }
+    });
+
+//     document.getElementById('saveBtn').addEventListener('click', () => {
+//     if (currentPie) {
+//         currentPie.websocketURL = document.getElementById('websocketURL').value; // Store WebSocket URL
+        
+//         pies.push(currentPie);
+//         currentPie = null;
+//         document.getElementById('instructions').textContent = 'Circle saved. Click on the video feed to set the position of another circle or finalize.';
+
+//         // Convert pies array to JSON and log it
+//         let piesJSON = JSON.stringify(pies);
+//         console.log(piesJSON);
+//     }
+// });
+
+
+
+document.getElementById('finalizeBtn').addEventListener('click', () => {
+    // Save the WebSocket URL of the current pie if it exists
+    if (currentPie) {
+        if (document.querySelector(`[data-index='${pies.length}'] .websocketInput`)) {
+            currentPie.websocketURL = document.querySelector(`[data-index='${pies.length}'] .websocketInput`).value;
+        } else {
+            currentPie.websocketURL = document.getElementById('websocketURL').value;
+        }
+        pies.push(currentPie);
+    }
+
+    // Convert pies array to JSON
+    let piesJSON = JSON.stringify(pies);
+
+        // Create a Blob object with the JSON data and generate a URL for it
+        let blob = new Blob([piesJSON], { type: 'application/json' });
+        let url = URL.createObjectURL(blob);
+
+        // Create a download link and programmatically click it to start the download
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = 'the_air_between_us-setup_layout.json';
+        document.body.appendChild(a); // Temporarily add to the DOM
+        a.click();
+        document.body.removeChild(a); // Clean up by removing from the DOM
+
+        // Stop the video streaming
+        video.pause();
+        if (video.srcObject) {
+            let tracks = video.srcObject.getTracks();
+            tracks.forEach(track => track.stop());
+        }
+
+        // Remove the canvas click event to prevent more pies from being added
+        canvas.removeEventListener('click', canvasClickHandler);
+
+        document.getElementById('instructions').textContent = 'The process has been finalized and the data has been saved. Please proceed to the next step.';
+    });
+
+
+    let isDragging = false;
+let draggedPie = null;
+
+function isInsideCircle(mouseX, mouseY, pie) {
+    const distance = Math.sqrt((mouseX - pie.x) ** 2 + (mouseY - pie.y) ** 2);
+    return distance <= pie.diameter / 2;
+}
+
+canvas.addEventListener('mousedown', (e) => {
+    for (let pie of pies) {
+        if (isInsideCircle(e.offsetX, e.offsetY, pie)) {
+            isDragging = true;
+            draggedPie = pie;
+            break;
+        }
+    }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (isDragging && draggedPie) {
+        draggedPie.x = e.offsetX;
+        draggedPie.y = e.offsetY;
+        drawAll();
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    isDragging = false;
+    draggedPie = null;
+});
+
+
+    startWebcam();
+</script>
+</body>
+</html>
